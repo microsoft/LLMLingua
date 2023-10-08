@@ -2,16 +2,21 @@
 <img src="images/LLMLingua_logo.png" alt="LLMLingua" style="width: 20%; min-width: 100px; display: block; margin: auto;">
 </p>
 
-# LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models
+# LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models [[paper]()] & LongLLMLingua [[paper]()]
 
-This repo contains the code for LLMLingua, a project that compresses prompts and speeds up inference for LLMs with minimal loss of performance.
+https://github.com/microsoft/LLMLingua/assets/30883354/ef52995c-ef3c-4eac-a9fd-1acb491c325b
 
-[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models]() ().
+## Tl;DR
+
+LLMLingua, that uses a well-trained small language model after alignment, such as GPT2-small or LLaMA-7B, to detect the unimportant tokens in the prompt and enable inference with the compressed prompt in black-box LLMs, achieving up to 20x compression with minimal performance loss.
+
+[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models]() (EMNLP 2023).
 _Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
+LongLLMLingua is a method that enhances LLMs' ability to perceive key information in long-context scenarios using prompt compression, achieveing up to $28.5 in cost savings per 1,000 samples while also improving performance.
 
-PS: We also release a hackathon demo to show our idea. Please check [here](https://hackbox.microsoft.com/hackathons/hackathon2023/project/26540).
-
+[LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression]() (Under Review).
+_Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
 ## 🎥 Overview
 
@@ -25,12 +30,12 @@ Large language models, such as ChatGPT and GPT-4, impress us with their amazing 
 
 ![image](./images/LLMLingua_framework.png)
 
-Now you can use **LLMLingua**!​
+Now you can use **LLMLingua** & **LongLLMLingua**!​
 
 A simple and efficient method to compress prompt up to **20x**.​
 
 - 💰 **Saving cost**, not only prompt, but also the generation length;​
-- 📝 **Support longer contexts**;​
+- 📝 **Support longer contexts** while delivering enhanced performance;​
 - ⚖️ **Robustness**, no need any training for the LLMs;​
 - 🕵️ **Keeping** the original prompt knowledge like ICL, reasoning, etc.​
 - 📜 **KV-Cache compression**, speedup inference;​
@@ -43,6 +48,16 @@ If you find this repo helpful, please cite the following paper:
 @inproceedings{jiang-etal-2023-llmlingua,
     title = "LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models",
     author = "Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang and Lili Qiu",
+    booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing",
+    month = dec,
+    year = "2023",
+    publisher = "Association for Computational Linguistics",
+}
+```
+```bibtex
+@inproceedings{jiang-etal-2023-longllmlingua,
+    title = "LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression",
+    author = "Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu",
 }
 ```
 
@@ -59,8 +74,8 @@ Then, you can use LLMLingua to compress your prompt,
 ```python
 from llmlingua import PromptCompressor
 
-llmlingua = PromptCompressor()
-compressed_prompt = llmlingua.compress_prompt(prompt, instruction="", question="", target_token=200)
+llm_lingua = PromptCompressor()
+compressed_prompt = llm_lingua.compress_prompt(prompt, instruction="", question="", target_token=200)
 
 # > {'compressed_prompt': 'Question: Sam bought a dozen boxes, each with 30 highlighter pens inside, for $10 each box. He reanged five of boxes into packages of sixlters each and sold them $3 per. He sold the rest theters separately at the of three pens $2. How much did make in total, dollars?\nLets think step step\nSam bought 1 boxes x00 oflters.\nHe bought 12 * 300ters in total\nSam then took 5 boxes 6ters0ters.\nHe sold these boxes for 5 *5\nAfterelling these  boxes there were 3030 highlighters remaining.\nThese form 330 / 3 = 110 groups of three pens.\nHe sold each of these groups for $2 each, so made 110 * 2 = $220 from them.\nIn total, then, he earned $220 + $15 = $235.\nSince his original cost was $120, he earned $235 - $120 = $115 in profit.\nThe answer is 115',
 #  'origin_tokens': 2365,
@@ -69,6 +84,11 @@ compressed_prompt = llmlingua.compress_prompt(prompt, instruction="", question="
 #  'saving': ', Saving $0.1 in GPT-4.'}
 ```
 
+You can refer to this [document](./DOCUMENT.md) for more recommendations on how to use LLMLingua effectively.
+
+## Frequently Asked Questions
+
+show in [Transparency_FAQ.md](./Transparency_FAQ.md)
 
 ## Contributing
 

@@ -24,6 +24,7 @@ INSTALL_REQUIRES = [
     "torch",
     "tiktoken",
     "nltk",
+    "numpy",
 ]
 QUANLITY_REQUIRES = [
     "black==21.4b0",
