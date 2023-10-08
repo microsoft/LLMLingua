@@ -397,3 +397,7 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 *.egg-info
+
+# build
+build/*
+dist/*

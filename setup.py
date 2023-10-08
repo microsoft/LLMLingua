@@ -36,9 +36,14 @@ DEV_REQUIRES = INSTALL_REQUIRES + QUANLITY_REQUIRES
 setup(
     name="llmlingua",
     version=VERSION["VERSION"],
-    description="An open-source prompt compression library for black-box LLMs like ChatGPT.",
+    author="The LLMLingua team",
+    author_email="hjiang@microsoft.com",
+    description="To speed up LLMs' inference and enhance LLM's perceive of key information, compress the prompt and KV-Cache, which achieves up to 20x compression with minimal performance loss.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
+    keywords="Prompt Compression, LLMs, Inference Acceleration, Black-box LLMs, Efficient LLMs",
+    license="MIT License",
+    url="https://github.com/microsoft/LLMLingua",
     classifiers=[
         "Intended Audience :: Science/Research",
         "Development Status :: 3 - Alpha",
@@ -53,6 +58,6 @@ setup(
     },
     install_requires=INSTALL_REQUIRES,
     include_package_data=True,
-    python_requires=">=3.7.0",
+    python_requires=">=3.8.0",
     zip_safe=False,
 )

@@ -66,7 +66,7 @@ If you find this repo helpful, please cite the following paper:
 Install LLMLingua,
 
 ```bash
-pip install -e .
+pip install llmlingua
 ```
     
 Then, you can use LLMLingua to compress your prompt,
