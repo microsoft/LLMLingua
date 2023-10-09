@@ -4,7 +4,7 @@
 
 # LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models [paper] & LongLLMLingua [paper]
 
-https://github.com/microsoft/LLMLingua/assets/30883354/ef52995c-ef3c-4eac-a9fd-1acb491c325b
+https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-61f94bb87438
 
 You can try the LLMLingua demo in [HF Space](https://huggingface.co/spaces/microsoft/LLMLingua).
 
