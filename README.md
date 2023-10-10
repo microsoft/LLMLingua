@@ -1,4 +1,11 @@
-<img src="images/LLMLingua_logo.png" alt="LLMLingua" width="100" align="left"><div align="center"><h1>&nbsp;LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models & LongLLMLingua </h1></div>
+<div style="display: flex; align-items: center; ">  
+    <div style="width: 100px; margin-right: 10px; height:auto;" align="left">  
+        <img src="images/LLMLingua_logo.png" alt="LLMLingua" width="100" align="left">  
+    </div>  
+    <div style="flex-grow: 1;" align="center">  
+        <h2 align="center">LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models & LongLLMLingua</h1>  
+    </div>  
+</div>
 
 <p align="center">
 | <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> | <b>LongLLMLingua Paper</b> | <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
