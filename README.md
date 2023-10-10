@@ -1,12 +1,10 @@
-<p align="center" width="100%">
-<img src="images/LLMLingua_logo.png" alt="LLMLingua" style="width: 20%; min-width: 100px; display: block; margin: auto;">
+<img src="images/LLMLingua_logo.png" alt="LLMLingua" width="100" align="left"><div align="center"><h1>&nbsp;LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models & LongLLMLingua </h1></div>
+
+<p align="center">
+| <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> | <b>LongLLMLingua Paper</b> | <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
 </p>
 
-# LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models [[paper](https://arxiv.org/abs/2310.05736)] & LongLLMLingua [paper]
-
 https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-61f94bb87438
-
-You can try the LLMLingua demo in [HF Space](https://huggingface.co/spaces/microsoft/LLMLingua).
 
 ## Tl;DR
 
