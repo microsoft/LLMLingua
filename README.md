@@ -8,7 +8,7 @@
 </div>
 
 <p align="center">
-| <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> | <b>LongLLMLingua Paper</b> | <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
+| <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> | <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua Paper</b></a> | <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
 </p>
 
 https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-61f94bb87438
@@ -22,7 +22,7 @@ _Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
 LongLLMLingua is a method that enhances LLMs' ability to perceive key information in long-context scenarios using prompt compression, achieveing up to $28.5 in cost savings per 1,000 samples while also improving performance.
 
-LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression (Under Review).<br>
+[LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression](https://arxiv.org/abs/2310.06839) (Under Review).<br>
 _Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
 ## 🎥 Overview
@@ -54,17 +54,22 @@ If you find this repo helpful, please cite the following paper:
 ```bibtex
 @inproceedings{jiang-etal-2023-llmlingua,
     title = "LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models",
-    author = "Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang and Lili Qiu",
+    author = "Huiqiang Jiang and Qianhui Wu and Chin-Yew Lin and Yuqing Yang and Lili Qiu",
     booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing",
     month = dec,
     year = "2023",
     publisher = "Association for Computational Linguistics",
+    url = "https://arxiv.org/abs/2310.05736",
 }
 ```
 ```bibtex
-@inproceedings{jiang-etal-2023-longllmlingua,
+@article{jiang-etal-2023-longllmlingua,
     title = "LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression",
-    author = "Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu",
+    author = "Huiqiang Jiang and Qianhui Wu and and Xufang Luo and Dongsheng Li and Chin-Yew Lin and Yuqing Yang and Lili Qiu",
+    url = "https://arxiv.org/abs/2310.06839",
+    journal = "ArXiv preprint",
+    volume = "abs/2310.06839",
+    year = "2023",
 }
 ```
 
