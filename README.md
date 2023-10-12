@@ -42,10 +42,12 @@ Now you can use **LLMLingua** & **LongLLMLingua**!​
 A simple and efficient method to compress prompt up to **20x**.​
 
 - 💰 **Saving cost**, not only prompt, but also the generation length;​
-- 📝 **Support longer contexts** while delivering enhanced performance;​
+- 📝 **Support longer contexts**, enhance the density of key information in the prompt and mitigate loss in the middle, thereby improving overall performance.
 - ⚖️ **Robustness**, no need any training for the LLMs;​
 - 🕵️ **Keeping** the original prompt knowledge like ICL, reasoning, etc.​
 - 📜 **KV-Cache compression**, speedup inference;​
+
+![image](./images/LongLLMLingua_Motivation.png)
 
 ![image](./images/LLMLingua_demo.png)
 
