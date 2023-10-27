@@ -8,10 +8,15 @@
 </div>
 
 <p align="center">
-| <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> | <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua Paper</b></a> | <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
+| <a href="https://llmlingua.com/"><b>Project Page</b></a>| <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> | <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua Paper</b></a> | <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
 </p>
 
 https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-61f94bb87438
+
+## News
+
+- 🎈 We launched a [project page](https://llmlingua.com/) showcasing real-world case studies, including RAG, Online Meetings, CoT, and Code;
+- 👾 LongLLMLingua has been incorporated into the [LlamaIndex pipeline](https://github.com/run-llama/llama_index/blob/main/llama_index/indices/postprocessor/longllmlingua.py), which is a widely used RAG framework.
 
 ## Tl;DR
 
