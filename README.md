@@ -16,18 +16,19 @@ https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-6
 ## News
 
 - 🎈 We launched a [project page](https://llmlingua.com/) showcasing real-world case studies, including RAG, Online Meetings, CoT, and Code;
+- 👨‍🦯 We have launched a series of examples in the ['./examples'](./examples) folder, which include [RAG](./examples/RAG.ipynb), [Online Meeting](./examples/OnlineMeeting.ipynb), [CoT](./examples/CoT.ipynb), [Code](./examples/Code.ipynb), and [RAG using LlamaIndex](./examples/RAGLlamaIndex.ipynb);
 - 👾 LongLLMLingua has been incorporated into the [LlamaIndex pipeline](https://github.com/run-llama/llama_index/blob/main/llama_index/indices/postprocessor/longllmlingua.py), which is a widely used RAG framework.
 
 ## Tl;DR
 
 LLMLingua, that uses a well-trained small language model after alignment, such as GPT2-small or LLaMA-7B, to detect the unimportant tokens in the prompt and enable inference with the compressed prompt in black-box LLMs, achieving up to 20x compression with minimal performance loss.
 
-[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models](https://arxiv.org/abs/2310.05736) (EMNLP 2023).<br>
+[LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models](https://arxiv.org/abs/2310.05736) (EMNLP 2023)<br>
 _Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
-LongLLMLingua is a method that enhances LLMs' ability to perceive key information in long-context scenarios using prompt compression, achieveing up to $28.5 in cost savings per 1,000 samples while also improving performance.
+LongLLMLingua is a method that enhances LLMs' ability to perceive key information in long-context scenarios using prompt compression, achieving up to $28.5 in cost savings per 1,000 samples while also improving performance.
 
-[LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression](https://arxiv.org/abs/2310.06839) (Under Review).<br>
+[LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression](https://arxiv.org/abs/2310.06839) (Under Review)<br>
 _Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
 ## 🎥 Overview
@@ -40,7 +41,7 @@ _Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang
 
 Large language models, such as ChatGPT and GPT-4, impress us with their amazing generalization and reasoning abilities, but they also come with some drawbacks, such as the prompt length limit and the prompt-based pricing scheme.​
 
-![image](./images/LLMLingua_framework.png)
+![image](./images/motivation.png)
 
 Now you can use **LLMLingua** & **LongLLMLingua**!​
 
@@ -51,12 +52,15 @@ A simple and efficient method to compress prompt up to **20x**.​
 - ⚖️ **Robustness**, no need any training for the LLMs;​
 - 🕵️ **Keeping** the original prompt knowledge like ICL, reasoning, etc.​
 - 📜 **KV-Cache compression**, speedup inference;​
+- 🪃 **GPT-4 can recovery all key information from the compressed prompt**.​
 
-![image](./images/LongLLMLingua_Motivation.png)
+![image](./images/LLMLingua.png)
+
+![image](./images/LongLLMLingua.png)
 
 ![image](./images/LLMLingua_demo.png)
 
-If you find this repo helpful, please cite the following paper:
+If you find this repo helpful, please cite the following papers:
 
 ```bibtex
 @inproceedings{jiang-etal-2023-llmlingua,
@@ -103,7 +107,7 @@ compressed_prompt = llm_lingua.compress_prompt(prompt, instruction="", question=
 #  'saving': ', Saving $0.1 in GPT-4.'}
 ```
 
-You can refer to this [document](./DOCUMENT.md) for more recommendations on how to use LLMLingua effectively.
+You can refer to the [**examples**](./examples) to understand how to use **LLMLingua** and **LongLLMLingua** in practical scenarios, such as RAG, Online Meeting, CoT, Code, and RAG using LlamaIndex. Additionally, you can refer to the [**document**](./DOCUMENT.md) for more recommendations on how to use LLMLingua effectively.
 
 ## Frequently Asked Questions
 
