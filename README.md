@@ -15,6 +15,7 @@ https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-6
 
 ## News
 
+- 📚 We launched a [blog](https://medium.com/@iofu728/longllmlingua-bye-bye-to-middle-loss-and-save-on-your-rag-costs-via-prompt-compression-54b559b9ddf7) to showcase the benefits in RAG and long context scenarios. Please see the script of the example at [this link](https://github.com/microsoft/LLMLingua/blob/main/examples/Retrieval.ipynb).
 - 🎈 We launched a [project page](https://llmlingua.com/) showcasing real-world case studies, including RAG, Online Meetings, CoT, and Code;
 - 👨‍🦯 We have launched a series of examples in the ['./examples'](./examples) folder, which include [RAG](./examples/RAG.ipynb), [Online Meeting](./examples/OnlineMeeting.ipynb), [CoT](./examples/CoT.ipynb), [Code](./examples/Code.ipynb), and [RAG using LlamaIndex](./examples/RAGLlamaIndex.ipynb);
 - 👾 LongLLMLingua has been incorporated into the [LlamaIndex pipeline](https://github.com/run-llama/llama_index/blob/main/llama_index/indices/postprocessor/longllmlingua.py), which is a widely used RAG framework.

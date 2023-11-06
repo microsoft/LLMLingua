@@ -89,7 +89,22 @@ compressed_prompt = llm_lingua.compress_prompt(
 - **dynamic_context_compression_ratio**(float, optional), control the ratio of dynamic context compression in LongLLMLingua, default set to 0.0;
 - **condition_compare**(bool, optional), control whether use the Iterative Token-level Question-aware Fine-Grained Compression in LongLLMLingua, default set to False,
 - **add_instruction**(bool, optional), control whether add the instuct before prompt in Iterative Token-level Question-aware Fine-Grained Compression, default set to False;
-- **rank_method**(bool, optional), control the rank method use in Coarse-level Prompt Compression, support "llmlingua", "longllmlingua", "bm25", "gzip", "sentbert", "openai", default set to "llmlingua";
+- **rank_method**(bool, optional), control the rank method use in Coarse-level Prompt Compression, support embedding methods, reranker methods, LLMLingua, and LongLLMLingua, default set to "llmlingua";
+    - "llmlingua": The coarse-grained prompt compression method in **LLMLingua**;
+    - "longllmlingua": The question-aware coarse-grained prompt compression method in **LongLLMLingua** (**Recommandation**);
+    - Traditional retrieval methods:
+        - "bm25": a bag-of-words retrieval function that ranks a set of documents based on the query terms appearing in each document, regardless of their proximity within the document;
+        - "gzip": a retrieval method based on gzip compression, refer to https://aclanthology.org/2023.findings-acl.426/;
+    - The embedding-based retrieval methods:
+        - "sentbert": embedding-based retrieval method, refer to https://www.sbert.net/;
+        - "openai": we use "text-embedding-ada-002" as the embedding model;
+        - "bge": embedding-based retrieval method, we use "BAAI/bge-large-en-v1.5", refer to https://huggingface.co/BAAI/bge-large-en-v1.5;
+        - "voyageai": embedding-based retrieval method, refer to https://www.voyageai.com/;
+        - "jinza": embedding-based retrieval method, we use "jinaai/jina-embeddings-v2-base-en", refer to https://huggingface.co/jinaai/jina-embeddings-v2-base-en;
+    - The reranker methods:
+        - "bge_reranker": reranker-based method, we use "BAAI/bge-reranker-large", refer to https://huggingface.co/BAAI/bge-reranker-large;
+        - "bge_llmembedder": reranker-based method, we use "BAAI/llm-embedder", refer to https://huggingface.co/BAAI/llm-embedder;
+        - "cohere": reranker-based method, we use "rerank-english-v2.0", refer to https://cohere.com/rerank;  
 - **concate_question**(bool, optional), control whether include the question in the compressed prompt, default set to True;
 
 ### Response
