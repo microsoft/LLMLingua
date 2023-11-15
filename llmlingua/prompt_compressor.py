@@ -143,6 +143,8 @@ class PromptCompressor:
         rank_method: str = "llmlingua",
         concate_question: bool = True,
     ):
+        if not context:
+            context = [" "]
         if isinstance(context, str):
             context = [context]
         assert not (
@@ -239,10 +241,15 @@ class PromptCompressor:
         else:
             compressed_prompt = "\n\n".join(context)
 
+        res = []
         if instruction:
-            compressed_prompt = instruction + "\n\n" + compressed_prompt
+            res.append(instruction)
+        if compressed_prompt.strip():
+            res.append(compressed_prompt)
         if question and concate_question:
-            compressed_prompt = compressed_prompt + "\n\n" + question
+            res.append(question)
+
+        compressed_prompt = "\n\n".join(res)
 
         compressed_tokens = len(encoding.encode(compressed_prompt))
         saving = (origin_tokens - compressed_tokens) * 0.06 / 1000
