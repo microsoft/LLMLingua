@@ -106,6 +106,10 @@ compressed_prompt = llm_lingua.compress_prompt(prompt, instruction="", question=
 #  'compressed_tokens': 211,
 #  'ratio': '11.2x',
 #  'saving': ', Saving $0.1 in GPT-4.'}
+
+## Or use the quantation model, like TheBloke/Llama-2-7b-Chat-GPTQ, only need <8GB GPU memory.
+## Before that, you need to pip install optimum auto-gptq
+llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"revision": "main"})
 ```
 
 You can refer to the [**examples**](./examples) to understand how to use **LLMLingua** and **LongLLMLingua** in practical scenarios, such as RAG, Online Meeting, CoT, Code, and RAG using LlamaIndex. Additionally, you can refer to the [**document**](./DOCUMENT.md) for more recommendations on how to use LLMLingua effectively.
