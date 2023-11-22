@@ -18,10 +18,10 @@ class PromptCompressor:
         self,
         model_name: str = "NousResearch/Llama-2-7b-hf",
         device_map: str = "cuda",
-        use_auth_token: bool = False,
+        model_config: dict = {},
         open_api_config: dict = {},
     ):
-        self.load_model(model_name, device_map, use_auth_token)
+        self.load_model(model_name, device_map, model_config)
         self.retrieval_model = None
         self.retrieval_model_name = None
         self.open_api_config = open_api_config
@@ -29,14 +29,18 @@ class PromptCompressor:
         self.prefix_bos_num = 100
 
     def load_model(
-        self, model_name: str, device_map: str = "cuda", use_auth_token: bool = False
+        self, model_name: str, device_map: str = "cuda", model_config: dict = {}
     ):
-        config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        tokenizer.padding_side = "left"
-        tokenizer.pad_token_id = (
-            config.pad_token_id if config.pad_token_id else tokenizer.eos_token_id
-        )
+        trust_remote_code = model_config.get("trust_remote_code", True)
+        if "trust_remote_code" not in model_config:
+            model_config["trust_remote_code"] = trust_remote_code
+        config = AutoConfig.from_pretrained(model_name, trust_remote_code=trust_remote_code)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=trust_remote_code)
+        if model_config.get("pad_to_left", True):
+            tokenizer.padding_side = "left"
+            tokenizer.pad_token_id = (
+                config.pad_token_id if config.pad_token_id else tokenizer.eos_token_id
+            )
         self.device = (
             device_map if any(key in device_map for key in ["cuda", "cpu"]) else "cuda"
         )
@@ -44,10 +48,11 @@ class PromptCompressor:
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 torch_dtype="auto" if device_map == "cuda" else torch.float32,
+                device_map=device_map,
                 config=config,
                 ignore_mismatched_sizes=True,
-                trust_remote_code=True,
-            ).to(device_map)
+                **model_config
+            )
         else:
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
@@ -57,8 +62,7 @@ class PromptCompressor:
                 offload_folder="/tmp/offload",
                 offload_state_dict=True,
                 cache_dir="/tmp/cache",
-                use_auth_token=use_auth_token,
-                trust_remote_code=True,
+                **model_config
             )
         self.tokenizer = tokenizer
         self.model = model
