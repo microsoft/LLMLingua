@@ -1,41 +1,23 @@
 """
 
-Module: prompt_compressor
+A module that provides a class for compressing prompts to optimize for efficient language model (LM) usage, particularly suitable for Transformer-based LMs like GPT-3.5 and similar architectures. It allows shortening inputs while preserving their semantic content to reduce token usage and computational overhead, potentially lowering the cost of using pay-per-token LMs and improving performance on token-limited models.
 
-This module contains the `PromptCompressor` class designed for compressing the context of prompts
-to effectively reduce the token count for large language models (LLMs) while preserving the critical information needed for the model to generate high-quality responses.
-The `PromptCompressor` class loads LLMs and provides several methods to handle different aspects of prompt compression.
+The main class, PromptCompressor, offers a variety of methods for processing input texts and compressing prompts using different techniques and ranking methods. It can work with multiple backends beyond local computation including BM25, sentence-BERT, and various APIs like OpenAI's embeddings and Cohere's reranker.
 
-Class `PromptCompressor`:
- - __init__(self, model_name: str='NousResearch/Llama-2-7b-hf', device_map: str='cuda', model_config: dict={}, open_api_config: dict={}):
-    Initializes the `PromptCompressor` instance by loading the model as specified by `model_name`, assigns a device map,
-    sets model configurations, and handles open API configurations if available.
+The module also provides a utility to reverse-engineer the compression process and recover the original uncompressed prompt from a compressed one in the context of a given response, as well as methods for ranking the relevance of context using multiple retrieval models.
 
- - load_model(self, model_name: str, device_map: str='cuda', model_config: dict={}):
-    Loads the language model based on the given `model_name`, `device_map`, and `model_config`. It also configures the tokenizer
-    settings such as padding side and pad token ID.
-
- - get_ppl(self, text: str, granularity: str='sentence', input_ids=None, attention_mask=None, past_key_values=None, return_kv=False, end=None, condition_mode: str='none', condition_pos_id: int=0):
-    Calculates the perplexity of a given text with an optional specified granularity and tokenizing options.
-    It handles past key values for more efficient calculations and allows specifying a condition mode for the calculation.
-
- - compress_prompt(self, context: List[str], instruction: str='', question: str='', ratio: float=0.5, target_token: float=-1, iterative_size: int=200, force_context_ids: List[int]=None, force_context_number: int=None, use_sentence_level_filter: bool=False, use_context_level_filter: bool=True, use_token_level_filter: bool=True, keep_split: bool=False, keep_first_sentence: int=0, keep_last_sentence: int=0, keep_sentence_number: int=0, high_priority_bonus: int=100, context_budget: str='+100', token_budget_ratio: float=1.4, condition_in_question: str='none', reorder_context: str='original', dynamic_context_compression_ratio: float=0.0, condition_compare: bool=False, add_instruction: bool=False, rank_method: str='llmlingua', concate_question: bool=True):
-    Main method that compresses the input context based on various parameters such as token count targets,
-    compression ratio settings, filtering preferences at different levels (sentence or context), and ranking methods for context importance.
-
- - get_token_length(self, text: str, add_special_tokens: bool=True):
-    Returns the token length of the given text, taking into account whether special tokens should be added or not.
-
- - get_condition_ppl(self, text: str, question: str, condition_in_question: str='none', granularity: str='sentence'):
-    Computes perplexity for text with the condition in the question taken into consideration.
-
- - get_rank_results(self, context: list, question: str, rank_method: str, condition_in_question: str, context_tokens_length: list):
-    Obtains ranking results for the given context based on the specified ranking method and condition in the question.
-    This function uses different retrieval techniques based on the provided `rank_method` parameter.
-
-
-Note: Alongside the methods mentioned above, several internal utility methods are used within the `PromptCompressor`.
-The class also includes functionality to recover the original response from compressed prompts using the `recover` method.
+Attributes:
+    load_model (Callable): Loads and configures the specified Transformer-based language model for compression tasks.
+    get_ppl (Callable): Calculates the perplexity of a given text using the loaded model, indicating the text's fluency.
+    compress_prompt (Callable): Compresses prompts, aiming to reduce their length while maintaining the important information.
+    get_token_length (Callable): Retrieves the token length of a given text as processed by the tokenization mechanic of the loaded LM.
+    get_condition_ppl (Callable): Determines the perplexity of a text under a given condition, influenced by an associated query.
+    control_context_budget (Callable): Filters and trims context passages to fit within a predetermined token budget.
+    control_sentence_budget (Callable): Prunes individual sentences from context while respecting a total token limit.
+    get_compressed_input (Callable): Executes the core compression logic, updating tokens based on calculated loss.
+    iterative_compress_prompt (Callable): Iteratively compresses prompts using the class's various compression tools.
+    recover (Callable): Attempts to recover the original uncompressed prompt from a compressed one based on a response.
+    get_rank_results (Callable): Retrieves ranking results for context documents related to a query via different ranking methods.
 
 Note: Documentation automatically generated by https://undoc.ai
 """
@@ -56,76 +38,45 @@ encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 class PromptCompressor:
     """
 
-    Class to compress prompts before feeding them into a language model to manage token limitations. It includes various methods to control compression levels and preserve the relevance of the content. The class supports different ranking methods and dynamic compression strategies to effectively summarize contexts and questions for input to large language models.
+    A class for compressing prompts to use with large language models, optimizing prompt length without losing important context information.
 
-    Attributes:
-        retrieval_model (Optional): An optional model used for ranking documents in context retrieval.
-        retrieval_model_name (Optional[str]): The name of the model used for retrieval, if applicable.
-        open_api_config (dict): Configuration dictionary for OpenAI-related API interactions.
-        cache_bos_num (int): Cache the number of beginning-of-sentence tokens used during prediction.
-        prefix_bos_num (int): Prefix BOS token number used during prediction.
-        tokenizer (AutoTokenizer): Tokenizer from the Transformers library for processing input text.
-        model (AutoModelForCausalLM): The language generation model.
-        context_idxs (list): Indexes of contexts used for dynamic prompt compression.
-        max_position_embeddings (int): Maximum sequence length that the model accepts.
+        Attributes:
+            retrieval_model: A transformer-based model for sentence embedding or ranking, initialized as None.
+            retrieval_model_name: A string representing the name of the retrieval model used, initialized as None.
+            open_api_config: A dictionary containing configuration for any external API used in ranking, initialized with an empty dict.
+            cache_bos_num: An integer indicating the number of beginning-of-sequence tokens cached, defaulted to 10.
+            prefix_bos_num: An integer indicating the number of prefix tokens before the beginning of sequence, defaulted to 100.
+            tokenizer: An instance of the tokenizer used with the model.
+            model: An instance of the transformer model used for causal language modeling.
+            context_idxs: A list to store the indexes of context tokens.
+            max_position_embeddings: An integer denoting the maximum number of position embeddings available in the model.
 
-    Methods:
-        __init__(): Initializes an instance of PromptCompressor with the given model, device map, and configuration options.
-        load_model(): Loads the specified language model and tokenizer with the provided configuration.
-        get_ppl(): Computes the perplexity of a given text segment based on the provided model and tokenizer.
-        __call__(): Compresses the prompt by delegating to compress_prompt() when the instance is called like a function.
-        compress_prompt(): Compresses the input context and question based on the specified parameters, using different levels of filtering and dynamic compression settings.
-        get_token_length(): Determines the number of tokens that a given text would occupy after tokenization.
-        get_condition_ppl(): Calculates the perplexity of a given text, with the condition applied before or after the text segment.
-        get_dynamic_compression_ratio(): Calculates dynamic compression ratios for iterative compression of prompts.
-        control_context_budget(): Controls the token budget for various contexts, selecting a subset based on target token limits and ranking methods.
-        control_sentence_budget(): Controls the sentence-level budget for token usage, deciding which sentences to retain.
-        get_compressed_input(): Helps in the iterative compression process by selecting tokens to keep based on loss thresholds.
-        get_estimate_threshold_base_distribution(): Estimates the threshold for selecting tokens to keep based on the desired compression ratio and model's predictions.
-        iterative_compress_prompt(): Progressively compresses the prompt through an iterative process with specified parameters, adjusting for keep flags and dynamic ratios.
-        recover(): Reconstructs the response from the compressed prompt to the original prompt's context, aligning the tokens for the user's reference.
-        get_rank_results(): Retrieves ranking results for context sentences or documents using various ranking methods to prioritize useful information.
+        The constructor of the class initializes the model and tokenization components, along with several attributes used for text processing and compression. The class offers multiple methods to assist with the compression and analysis of prompts before they are fed into a language model, facilitating the operation under token constraints and aiming to improve the efficiency of the language model. It leverages various techniques like perplexity calculation, iterative compression, and external APIs or embedding models to rank and filter the most relevant parts of the context. The class is designed with extendability for future enhancements and integrations with external retrievals systems and compression algorithms.
     """
 
     def __init__(
-            self,
-            model_name: str = "NousResearch/Llama-2-7b-hf",
-            device_map: str = "cuda",
-            model_config: dict = {},
-            open_api_config: dict = {},
+        self,
+        model_name: str = "NousResearch/Llama-2-7b-hf",
+        device_map: str = "cuda",
+        model_config: dict = {},
+        open_api_config: dict = {},
     ):
         """
 
+        Initializes an instance with a specified language model and configurations.
 
-            Initializes an instance of the object with the given parameters.
+            This method is responsible for loading a specified language model into the instance, initializing retrieval model parameters, and
+            setting up configuration for any OpenAPI specifications. It also initializes values related to cache and prefixes
+            for the model's operations.
 
-            This method is responsible for setting up the model based on the provided model name and device map, as well as initializing various configuration parameters.
+            Args:
+                model_name (str): The name or path of the pre-trained language model to load. Defaults to 'NousResearch/Llama-2-7b-hf'.
+                device_map (str): The device on which to run the model, can be 'cpu' or 'cuda' for GPU acceleration. Defaults to 'cuda'.
+                model_config (dict): A dictionary containing configuration parameters for the model. Defaults to an empty dict.
+                open_api_config (dict): A dictionary containing configuration for OpenAPI compatibility. Defaults to an empty dict.
 
-            Parameters:
-            -----------
-            model_name : str, optional
-                The name of the model to be loaded. Defaults to 'NousResearch/Llama-2-7b-hf'.
-            device_map : str, optional
-                The device on which the model is to be deployed. Defaults to 'cuda' for GPU support.
-            model_config : dict, optional
-                A dictionary containing the configuration settings for the model.
-            open_api_config : dict, optional
-                A dictionary containing configuration for open API.
-
-            Attributes:
-            -----------
-            retrieval_model : NoneType
-                Initially set to None. To be defined for retrieving documents or information.
-            retrieval_model_name : NoneType
-                Initially set to None. To store the name of the retrieval model if one is used.
-            open_api_config : dict
-                Stores the open API configuration passed as a parameter.
-            cache_bos_num : int
-                The number of beginning-of-sentence tokens to cache, pre-set to 10.
-            prefix_bos_num : int
-                The number of beginning-of-sentence tokens that are prefixed to the input, pre-set to 100.
-
-            The `__init__` method is typically called when an instance of the class is created and is not meant to be invoked directly by the user.
+            Side Effects:
+                Loads the specified language model into memory according to the device_map and initializes various attributes of the instance.
 
         """
         self.load_model(model_name, device_map, model_config)
@@ -136,48 +87,59 @@ class PromptCompressor:
         self.prefix_bos_num = 100
 
     def load_model(
-            self, model_name: str, device_map: str = "cuda", model_config: dict = {}
+        self, model_name: str, device_map: str = "cuda", model_config: dict = {}
     ):
         """
+        Initializes and loads a pre-trained model along with its tokenizer based on the provided model name and configuration.
 
+        This method configures the tokenizer to account for padding preferences and sets up the model on
+        the specified computing device (i.e., CPU or GPU). It can handle both simple device definitions or
+        more complex mappings for distributed computing scenarios.
 
-            Loads a language model and its tokenizer into the class instance based on specified configuration.
+        Args:
+            model_name (str): Name or path of the pre-trained model to be loaded.
+            device_map (str): The device on which the model should be loaded. Defaults to 'cuda', but
+                              can be set to 'cpu' or more complex device mappings.
+            model_config (dict): A dictionary of additional configurations to apply to the model. Accepts
+                                various keys such as 'pad_to_left', 'trust_remote_code', etc.,
+                                which alter the model's behavior and loading process.
 
-            The function is designed to set up a model for causal language modeling by acquiring pre-trained settings,
-            a tokenizer, and model weights which can be fine-tuned, using the model name provided. It also manages
-            device placement for the model and adapts tokenizer's padding direction based on configurations.
+        The 'trust_remote_code' configuration within model_config dictates if remote code should be trusted
+        when loading the tokenizer and the model components. It defaults to True if not specified. The 'pad_to_left'
+        configuration determines where the tokenizer should add padding relative to the text.
 
-            This loading process ensures that the model is compatible with the expected hardware (like CPU or CUDA)
-            and loads it accordingly. It accommodates specific configurations such as ignoring mismatched sizes,
-            and offloading capabilities to optimize memory usage on the specified device.
+        The method ensures proper setting of the pad token id based on the model's configuration or tokenizer settings
+        and handles device placement of the model for torch-based models, acknowledging the presence of 'cuda' or 'cpu' in
+        device_map for appropriate data type casting. It also deals with special cases for offloading and caching for
+        more efficient memory usage.
 
-            Args:
-                model_name (str): The name or path of the pre-trained model to be loaded.
-                device_map (str): The device identifier where the model will be loaded. Defaults to 'cuda'.
-                model_config (dict): A dictionary of configurations to apply to the model.
-                    Recognized keys include 'trust_remote_code', 'pad_to_left', and others pertaining to the
-                    model's specific implementation and requirements. A particularly important key is
-                    'trust_remote_code', which defaults to True if not provided, and is essential for the
-                    AutoConfig to load a remote configuration securely.
+        Attributes set during loading:
+            self.device: Indicates the device on which the model is loaded.
+            self.tokenizer: The tokenizer that is loaded and configured based on 'model_name'.
+            self.model: The loaded pre-trained model, ready for use.
+            self.context_idxs: (Not explicitly described in the signature, presumed to be initialized here)
+            self.max_position_embeddings: Extracted from the configuration of the loaded model to limit
+                                          the maximum number of position embeddings.
 
-            Modifies:
-                - Assigns the loaded model and tokenizer to the instance variables 'model' and 'tokenizer'.
-                - Sets 'device' as an instance variable indicating the device on which the model is loaded.
-                - 'context_idxs' is modified to an empty list as preparation for any further processes.
-                - Sets the 'max_position_embeddings' from the model configuration to an instance variable.
+        Note that this function may perform network operations to download the necessary files if they are
+        not already cached locally.
 
-            Raises:
-                This function does not explicitly raise exceptions but may do so as a part of
-                the underlying library calls (e.g., HuggingFace Transformers) when loading models
-                or tokenizers, particularly if model_name is invalid or device_map is misconfigured.
+        Raises:
+            It can raise various exceptions related to the HuggingFace Transformers library, networking issues,
+            or incorrect configuration settings, which are not explicitly handled within this method.
 
-
+        Returns:
+            None. This method operates by side effects on the class instance.
         """
         trust_remote_code = model_config.get("trust_remote_code", True)
         if "trust_remote_code" not in model_config:
             model_config["trust_remote_code"] = trust_remote_code
-        config = AutoConfig.from_pretrained(model_name, trust_remote_code=trust_remote_code)
-        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=trust_remote_code)
+        config = AutoConfig.from_pretrained(
+            model_name, trust_remote_code=trust_remote_code
+        )
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, trust_remote_code=trust_remote_code
+        )
         if model_config.get("pad_to_left", True):
             tokenizer.padding_side = "left"
             tokenizer.pad_token_id = (
@@ -193,7 +155,7 @@ class PromptCompressor:
                 device_map=device_map,
                 config=config,
                 ignore_mismatched_sizes=True,
-                **model_config
+                **model_config,
             )
         else:
             model = AutoModelForCausalLM.from_pretrained(
@@ -204,7 +166,7 @@ class PromptCompressor:
                 offload_folder="/tmp/offload",
                 offload_state_dict=True,
                 cache_dir="/tmp/cache",
-                **model_config
+                **model_config,
             )
         self.tokenizer = tokenizer
         self.model = model
@@ -212,43 +174,47 @@ class PromptCompressor:
         self.max_position_embeddings = config.max_position_embeddings
 
     def get_ppl(
-            self,
-            text: str,
-            granularity: str = "sentence",
-            input_ids=None,
-            attention_mask=None,
-            past_key_values=None,
-            return_kv=False,
-            end=None,
-            condition_mode: str = "none",
-            condition_pos_id: int = 0,
+        self,
+        text: str,
+        granularity: str = "sentence",
+        input_ids=None,
+        attention_mask=None,
+        past_key_values=None,
+        return_kv=False,
+        end=None,
+        condition_mode: str = "none",
+        condition_pos_id: int = 0,
     ):
         """
 
-        def get_ppl(self, text: str, granularity: str='sentence', input_ids=None, attention_mask=None, past_key_values=None, return_kv=False, end=None, condition_mode: str='none', condition_pos_id: int=0):
 
-                Calculates the perplexity of a given text using the model associated with the self instance.
+        Computes the perplexity of text with respect to a language model.
 
-                Perplexity is a measurement of how well a probability distribution or probability model predicts a sample. It may be used to compare probability models. A low perplexity indicates the probability distribution is good at predicting the sample.
+        This function calculates the perplexity of a given text by utilizing a pretrained language model. Perplexity is a measurement of
+        how well a probability model predicts a sample, with lower values indicating better predictive performance. It optionally
+        supports partial computations by providing previously computed states. It also allows for conditioning the computation
+        before or after a specified position in the sequence.
 
-                Args:
-                    text (str): The input text for which the perplexity is to be calculated.
-                    granularity (str, optional): The granularity at which the perplexity should be calculated ('sentence' for the perplexity of the entire text or 'token' for per-token perplexity). Defaults to 'sentence'.
-                    input_ids (optional): Precomputed input ids for the text. If not provided, will be computed from the raw text. Defaults to None.
-                    attention_mask (optional): Precomputed attention mask for the text. If not provided, will be computed from the raw text. Defaults to None.
-                    past_key_values (optional): Tuple of key/value pairs that represent the past state of the model. Defaults to None.
-                    return_kv (bool, optional): If set to True, returns updated key/value pairs representing the new state after processing the input text. Defaults to False.
-                    end (optional): Index after which sequence will be truncated. If None, sequences are not truncated. Defaults to None.
-                    condition_mode (str, optional): Specifies where to apply a conditional operation in the sequence ('before', 'after', or 'none'). Defaults to 'none'.
-                    condition_pos_id (int, optional): The token index used as a cutoff point for the conditional operation specified by condition_mode. Defaults to 0.
+        Args:
+            text (str): The text to compute perplexity for.
+            granularity (str, optional): The level of granularity for the perplexity calculation, either 'sentence' or 'token'. Defaults to 'sentence'.
+            input_ids (torch.Tensor, optional): Tensor containing input IDs if already computed. Defaults to None.
+            attention_mask (torch.Tensor, optional): Tensor containing the attention mask if already computed. Defaults to None.
+            past_key_values (tuple, optional): Tuple containing past key values if computation is to be continued from a previous state. Defaults to None.
+            return_kv (bool, optional): Whether to return the past_key_values. Defaults to False.
+            end (int, optional): The end position for the computation in the sequence. Defaults to None, which means it will be calculated based on input length.
+            condition_mode (str, optional): Specifies if and how the computation is conditioned, either 'before', 'after', or 'none'. Defaults to 'none'.
+            condition_pos_id (int, optional): The position ID for the condition if condition_mode is not 'none'. Defaults to 0.
 
-                Returns:
-                    If return_kv is False, returns the average loss calculated as the perplexity of the input `text`. The return type is a Tensor if granularity is 'token' or a float if granularity is 'sentence'.
-                    If return_kv is True, returns a tuple containing the calculated loss and the updated past_key_values.
+        Returns:
+            float or tuple: The perplexity of the given text if granularity is 'sentence', or a tuple containing the token-wise
+                             perplexity and past_key_values if return_kv is True.
 
-                Note:
-                    The function relies on an instance of a model that should be previously loaded and associated with the 'self'. The model should be of a class capable of processing the text input and returning logits.
-                    The actual calculation of perplexity assumes the use of a model that captures the statistical properties of the language such as a transformer-based language model.
+        Note:
+            The `input_ids` and `attention_mask` arguments are expected to be tensors already placed on the correct device
+            upon which the model should execute. States in `past_key_values` must match the configuration of the model, and
+            `condition_pos_id` should be within the range of the sequence length if condition_mode is activated.
+
         """
         if input_ids is None:
             tokenized_text = self.tokenizer(text, return_tensors="pt")
@@ -272,7 +238,7 @@ class PromptCompressor:
 
         loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
         shift_logits = response.logits[..., :-1, :].contiguous()
-        shift_labels = input_ids[..., past_length + 1: end].contiguous()
+        shift_labels = input_ids[..., past_length + 1 : end].contiguous()
         # Flatten the tokens
         active = (attention_mask[:, past_length:end] == 1)[..., :-1].view(-1)
         active_logits = shift_logits.view(-1, shift_logits.size(-1))[active]
@@ -289,63 +255,93 @@ class PromptCompressor:
     def __call__(self, *args, **kwargs):
         """
 
-        ```
-            def __call__(self, *args, **kwargs):
+        Method to invoke the object as a callable which internally calls the compress_prompt method.
 
-                Calls the instance's `compress_prompt` method.
+        This method allows the object to be used like a function. When the object is called, it defers the call
+        to its internal compress_prompt method. All arguments and keyword arguments passed to
+        this method are forwarded to compress_prompt.
 
-                When the instance of the class is called like a function, the Python interpreter automatically invokes the `__call__` method. This method in turn forwards all received arguments to the `compress_prompt` method of the instance, which is expected to be defined elsewhere within the class.
+        Args:
+            *args: Variable length argument list to be passed to the compress_prompt method.
+            **kwargs: Arbitrary keyword arguments to be passed to the compress_prompt method.
 
-                Parameters:
-                ----------
-                *args : tuple
-                    Variable length argument list to be passed to the `compress_prompt` method.
+        Returns:
+            The return value from the compress_prompt method.
 
-                **kwargs : dict
-                    Arbitrary keyword arguments to be passed to the `compress_prompt` method.
-
-                Returns:
-                -------
-                The return value from the `compress_prompt` method.
-
-                Note:
-                -----
-                The actual behavior and return type completely depend on the implementation of the `compress_prompt` method, and thus cannot be inferred from this documentation alone.
-        ```
         """
         return self.compress_prompt(*args, **kwargs)
 
     def compress_prompt(
-            self,
-            context: List[str],
-            instruction: str = "",
-            question: str = "",
-            ratio: float = 0.5,
-            target_token: float = -1,
-            iterative_size: int = 200,
-            force_context_ids: List[int] = None,
-            force_context_number: int = None,
-            use_sentence_level_filter: bool = False,
-            use_context_level_filter: bool = True,
-            use_token_level_filter: bool = True,
-            keep_split: bool = False,
-            keep_first_sentence: int = 0,
-            keep_last_sentence: int = 0,
-            keep_sentence_number: int = 0,
-            high_priority_bonus: int = 100,
-            context_budget: str = "+100",
-            token_budget_ratio: float = 1.4,
-            condition_in_question: str = "none",
-            reorder_context: str = "original",
-            dynamic_context_compression_ratio: float = 0.0,
-            condition_compare: bool = False,
-            add_instruction: bool = False,
-            rank_method: str = "llmlingua",
-            concate_question: bool = True,
+        self,
+        context: List[str],
+        instruction: str = "",
+        question: str = "",
+        ratio: float = 0.5,
+        target_token: float = -1,
+        iterative_size: int = 200,
+        force_context_ids: List[int] = None,
+        force_context_number: int = None,
+        use_sentence_level_filter: bool = False,
+        use_context_level_filter: bool = True,
+        use_token_level_filter: bool = True,
+        keep_split: bool = False,
+        keep_first_sentence: int = 0,
+        keep_last_sentence: int = 0,
+        keep_sentence_number: int = 0,
+        high_priority_bonus: int = 100,
+        context_budget: str = "+100",
+        token_budget_ratio: float = 1.4,
+        condition_in_question: str = "none",
+        reorder_context: str = "original",
+        dynamic_context_compression_ratio: float = 0.0,
+        condition_compare: bool = False,
+        add_instruction: bool = False,
+        rank_method: str = "llmlingua",
+        concate_question: bool = True,
     ):
         """
 
-        def compress_prompt(self, context: List[str], instruction: str='', question: str='', ratio: float=0.5, target_token: float=-1, iterative_size: int=200, force_context_ids: List[int]=None, force_context_number: int=None, use_sentence_level_filter: bool=False, use_context_level_filter: bool=True, use_token_level_filter: bool=True, keep_split: bool=False, keep_first_sentence: int=0, keep_last_sentence: int=0, keep_sentence_number: int=0, high_priority_bonus: int=100, context_budget: str='+100', token_budget_ratio: float=1.4, condition_in_question: str='none', reorder_context: str='original', dynamic_context_compression_ratio: float=0.0, condition_compare: bool=False, add_instruction: bool=False, rank_method: str='llmlingua', concate_question: bool=True):
+
+        Compresses the provided context by applying various filters and techniques to reduce token count.
+
+        This function attempts to minimize the prompt size while preserving the most relevant information. It is part of
+        a system that prepares prompts for large language models to optimize performance and cost.
+
+        Args:
+            context (List[str]): A list of context strings to be compressed.
+            instruction (str, optional): Instruction to be added to the prompt. Defaults to ''.
+            question (str, optional): The related question to be included in the prompt. Defaults to ''.
+            ratio (float, optional): The target ratio to determine the compression level. Defaults to 0.5.
+            target_token (float, optional): If not -1, explicitly sets the target token count after compression. Defaults to -1.
+            iterative_size (int, optional): The batch size for iterative compression. Defaults to 200.
+            force_context_ids (List[int], optional): List of context IDs to force include. Defaults to None.
+            force_context_number (int, optional): Number of contexts to force include. Defaults to None.
+            use_sentence_level_filter (bool, optional): Whether to apply sentence level filter. Defaults to False.
+            use_context_level_filter (bool, optional): Whether to apply context level filter. Defaults to True.
+            use_token_level_filter (bool, optional): Whether to apply token level filter. Defaults to True.
+            keep_split (bool, optional): Whether to keep the context split. Defaults to False.
+            keep_first_sentence (int, optional): Number of first sentences to keep. Defaults to 0.
+            keep_last_sentence (int, optional): Number of last sentences to keep. Defaults to 0.
+            keep_sentence_number (int, optional): Total number of sentences to keep. Defaults to 0.
+            high_priority_bonus (int, optional): Priority bonus for certain sentences. Defaults to 100.
+            context_budget (str, optional): String to determine context budget. Defaults to '+100'.
+            token_budget_ratio (float, optional): Ratio for token budgeting. Defaults to 1.4.
+            condition_in_question (str, optional): Conditioning to be applied to the question. Defaults to 'none'.
+            reorder_context (str, optional): Method to reorder context. Defaults to 'original'.
+            dynamic_context_compression_ratio (float, optional): Ratio for dynamic context compression. Defaults to 0.0.
+            condition_compare (bool, optional): Whether to compare different conditions. Defaults to False.
+            add_instruction (bool, optional): Whether to add instructions to the prompt. Defaults to False.
+            rank_method (str, optional): Method used to rank the importance of contexts. Defaults to 'llmlingua'.
+            concate_question (bool, optional): Whether to concatenate the question to the prompt. Defaults to True.
+
+        Returns:
+            dict: A dictionary with keys 'compressed_prompt' (str: the compressed prompt text), 'origin_tokens' (int: the
+            original token count), 'compressed_tokens' (int: the compressed token count), 'ratio' (str: the compression
+            ratio expressed as 'x.x' times), and 'saving' (str: estimated cost saving information formatted as a string).
+
+        Raises:
+            AssertionError: If 'rank_method' is 'longllmlingua' and no question is provided.
+
 
         """
         if not context:
@@ -353,7 +349,7 @@ class PromptCompressor:
         if isinstance(context, str):
             context = [context]
         assert not (
-                rank_method == "longllmlingua" and not question
+            rank_method == "longllmlingua" and not question
         ), "In the LongLLMLingua, it is necessary to set a question."
         if condition_compare and "_condition" not in condition_in_question:
             condition_in_question += "_condition"
@@ -375,14 +371,14 @@ class PromptCompressor:
         ), self.get_token_length(question)
         if target_token == -1:
             target_token = (
-                    (
-                            instruction_tokens_length
-                            + question_tokens_length
-                            + sum(context_tokens_length)
-                    )
-                    * (1 - ratio)
-                    - instruction_tokens_length
-                    - (question_tokens_length if concate_question else 0)
+                (
+                    instruction_tokens_length
+                    + question_tokens_length
+                    + sum(context_tokens_length)
+                )
+                * (1 - ratio)
+                - instruction_tokens_length
+                - (question_tokens_length if concate_question else 0)
             )
         condition_flag = "_condition" in condition_in_question
         condition_in_question = condition_in_question.replace("_condition", "")
@@ -421,19 +417,19 @@ class PromptCompressor:
         if condition_flag:
             prefix = question + "\n\n" + instruction if add_instruction else question
             if (
-                    self.get_token_length(prefix) + 2 + iterative_size * 2
-                    > self.max_position_embeddings
+                self.get_token_length(prefix) + 2 + iterative_size * 2
+                > self.max_position_embeddings
             ):
                 tokens = self.tokenizer(prefix, add_special_tokens=False).input_ids
                 prefix = self.tokenizer.decode(
                     tokens[: self.prefix_bos_num]
                     + tokens[
-                      len(tokens)
-                      - self.max_position_embeddings
-                      + 2
-                      + self.prefix_bos_num
-                      + 2 * iterative_size:
-                      ]
+                        len(tokens)
+                        - self.max_position_embeddings
+                        + 2
+                        + self.prefix_bos_num
+                        + 2 * iterative_size :
+                    ]
                 )
             start = self.get_token_length(prefix) + 2
             context = [prefix] + context
@@ -480,58 +476,52 @@ class PromptCompressor:
 
     def get_token_length(self, text: str, add_special_tokens: bool = True):
         """
+        Calculate the length of tokens for a given text after tokenization.
 
-        def get_token_length(self, text: str, add_special_tokens: bool=True):
+        This function utilizes the tokenizer associated with the class instance to turn the input text
+        into tokens. It returns the number of tokens, including or excluding special tokens based
+        on the parameter provided. Special tokens are typically added to signify the beginning
+        or end of sentences within the text.
 
-            Returns the length of tokens for the given text when processed by the tokenizer.
+        Args:
+            text (str): The input text to be tokenized.
+            add_special_tokens (bool): A flag indicating whether to include special tokens
+                in the tokenization process. Defaults to True, meaning special tokens
+                will be included in the token count.
 
-            This function calculates the number of tokens generated by the tokenizer after processing the input text. It accounts for special tokens that may be added to the sequence, like start or end tokens, based on the tokenizer's configuration and the `add_special_tokens` parameter.
-
-            Parameters:
-                text (str): The text to be tokenized and measured.
-                add_special_tokens (bool, optional): Flag indicating whether to include special tokens
-                    (like start or end tokens) in the tokenization process. Defaults to True.
-
-            Returns:
-                int: The number of tokens in the tokenized representation of the input text, including
-                    any special tokens if `add_special_tokens` is set to True.
-
-
+        Returns:
+            int: The total number of tokens obtained from the input text, considering
+                the addition of special tokens based on the parameter.
         """
         return len(
             self.tokenizer(text, add_special_tokens=add_special_tokens).input_ids
         )
 
     def get_condition_ppl(
-            self,
-            text: str,
-            question: str,
-            condition_in_question: str = "none",
-            granularity: str = "sentence",
+        self,
+        text: str,
+        question: str,
+        condition_in_question: str = "none",
+        granularity: str = "sentence",
     ):
         """
 
-        Calculates the perplexity of a given text in relation to a question, under specific conditions.
+        Calculates the perplexity of a text given a specific condition on a question phrase. The perplexity is a measurement of how well a probability model predicts a sample. This function offers the flexibility to measure the perplexity based on different conditions relative to the question phrase, such as 'none', 'before', or 'after'. The perplexity can also be evaluated at different granularities such as on a sentence basis or other defined levels. Additionally, the function takes into account the position of the condition when concatenating the text and question phrases for evaluation.
 
-            This method computes the perplexity (ppl) value which is a measure of how well a probabilistic
-            model predicts a sample. It is used to compare the text's relevance or fluency concerning a
-            condition specified by a question. The method also takes into account the condition's position
-            relative to the text (either before or after the text).
-
-            Parameters:
-                text (str): The text for which perplexity is to be calculated.
-                question (str): The question used to condition the perplexity computation.
-                condition_in_question (str, optional): A string that specifies the position of the condition
-                    in relation to the text. It can be 'none', 'before', or 'after'. By default, it is 'none',
-                    which means the perplexity is calculated without considering the question as a condition.
-                granularity (str, optional): A string that specifies the granularity at which perplexity is
-                    calculated. It could be 'sentence' or other levels of granularity. The default is 'sentence'.
+            Args:
+                text (str): The text for which perplexity should be calculated.
+                question (str): The question phrase which can be used to condition the perplexity calculation.
+                condition_in_question (str, optional): A string that indicates the condition relative to the question. Can be 'none', 'before', or 'after'. Defaults to 'none'.
+                granularity (str, optional): A string determining the level of detail at which perplexity is calculated, e.g., 'sentence'. Defaults to 'sentence'.
 
             Returns:
-                float: The calculated perplexity value of the text under the given condition.
+                float: The calculated perplexity of the text under the given condition.
 
             Raises:
-                ValueError: If the condition_in_question parameter is not one of 'none', 'before', or 'after'.
+                ValueError: If an unsupported condition is specified.
+
+            Note:
+                The function internally calls 'get_ppl' and other utility methods, which are not defined within this docstring. These should be implemented appropriately to ensure proper functionality.
         """
         if condition_in_question == "none":
             return self.get_ppl(text, granularity=granularity)
@@ -551,22 +541,47 @@ class PromptCompressor:
             )
 
     def get_dynamic_compression_ratio(
-            self,
-            context: list,
-            target_token: float,
-            iterative_size: int,
-            dynamic_ratio: list,
-            start: int,
+        self,
+        context: list,
+        target_token: float,
+        iterative_size: int,
+        dynamic_ratio: list,
+        start: int,
     ):
         """
 
-        def get_dynamic_compression_ratio(self, context: list, target_token: float, iterative_size: int, dynamic_ratio: list, start: int):
+        Calculates dynamic compression ratios for chunks of context based on the target token, iterative size, and dynamic ratio adjustments starting at a given index. This function helps in determining the optimal compression ratio for different parts of a context to match a target token density, potentially useful for applications like text summarization or data compression where balance between detail and brevity is needed.
+
+            Args:
+                context (list): A list of textual elements for which dynamic compression ratios are calculated.
+                target_token (float): The goal token density to achieve across the chunks.
+                iterative_size (int): The size of each chunk for which the ratio is calculated.
+                dynamic_ratio (list): A list of floating-point numbers, each corresponding to an adjustment to be applied to the token density of the respective context chunk.
+                start (int): An integer indicating the starting index within the context list from where to begin processing.
+
+            Returns:
+                list: A nested list where each sublist contains tuples. Each tuple consists of the chunk size and the calculated dynamic compression ratio for that chunk. This structure represents the adjusted token densities per chunk to approximate the target token density throughout the context.
         """
 
         def get_ratio(base: float, delta: float):
             """
 
-            def get_ratio(base: float, delta: float) -> float:
+
+            Calculate a ratio by adding a delta to a base value, ensuring the result is clamped between 0 and 1.
+
+            Args:
+                base (float): The base value that represents the initial ratio.
+                delta (float): The value to be added to the base, which can be positive or negative.
+
+            Returns:
+                float: The resulting ratio, which is guaranteed to be within the range [0, 1].
+
+            The function takes a base floating-point value and a delta.
+            It adjusts the base by adding the delta to it while making sure that the
+            result does not fall below 0 or exceed 1. This is commonly used in situations
+            where ratios represent things like probabilities or normalized values that are
+            required to stay within this range.
+
             """
             return max(min(1, base + delta), 0)
 
@@ -603,22 +618,56 @@ class PromptCompressor:
         return res
 
     def control_context_budget(
-            self,
-            context: List[str],
-            context_tokens_length: List[int],
-            target_token: float,
-            force_context_ids: List[int] = None,
-            force_context_number: int = None,
-            question: str = "",
-            condition_in_question: str = "none",
-            reorder_context: str = "original",
-            dynamic_context_compression_ratio: float = 0.0,
-            rank_method: str = "longllmlingua",
-            context_budget: str = "+100",
+        self,
+        context: List[str],
+        context_tokens_length: List[int],
+        target_token: float,
+        force_context_ids: List[int] = None,
+        force_context_number: int = None,
+        question: str = "",
+        condition_in_question: str = "none",
+        reorder_context: str = "original",
+        dynamic_context_compression_ratio: float = 0.0,
+        rank_method: str = "longllmlingua",
+        context_budget: str = "+100",
     ):
         """
 
-        def control_context_budget(self, context: List[str], context_tokens_length: List[int], target_token: float, force_context_ids: List[int]=None, force_context_number: int=None, question: str='', condition_in_question: str='none', reorder_context: str='original', dynamic_context_compression_ratio: float=0.0, rank_method: str='longllmlingua', context_budget: str='+100'):
+
+        Control context budget based on target token count and provided conditions.
+
+        This function allows limiting and reordering the context based on a specified token count budget
+        and additional rules. The selection is originally determined by an internal ranking function, but it can
+        be influenced by various parameters such as forced context inclusion, reordering strategy, and dynamic
+        context compression ratios. The final context is returned along with dynamic ratio adjustments if
+        applicable.
+
+        Args:
+            context (List[str]): A list of context strings to consider for inclusion.
+            context_tokens_length (List[int]): List of integer lengths, corresponding to the token counts
+                for each context string.
+            target_token (float): Initial target token count for the context budget.
+            force_context_ids (List[int], optional): List of indices to forcibly include in the output
+                context. Defaults to None.
+            force_context_number (int, optional): Integer specifying a fixed number of contexts to include,
+                overriding the token-based budget. Defaults to None.
+            question (str, optional): The question string used during ranking of context. Defaults to ''.
+            condition_in_question (str, optional): Condition that could affect context ranking.
+                Defaults to 'none'.
+            reorder_context (str, optional): Strategy to reorder the context, with possible values being
+                'original', 'two_stage', or others. Defaults to 'original'.
+            dynamic_context_compression_ratio (float, optional): Specifies the compression ratio for dynamic
+                context adjustment. Defaults to 0.0.
+            rank_method (str, optional): The ranking method name to be used by the internal ranking function.
+                Defaults to 'longllmlingua'.
+            context_budget (str, optional): A string representing an adjustment operation (++/-) for the final
+                context budget based on the initial target_token. Defaults to '+100'.
+
+        Returns:
+            tuple:
+                res (List[str]): The final list of context strings after applying budget and reordering rules.
+                dynamic_ratio (List[float]): List of dynamic ratio adjustments for each context string,
+                    applicable if dynamic_context_compression_ratio is greater than 0.
         """
         if force_context_ids is not None:
             return [context[ii] for ii in force_context_ids]
@@ -644,7 +693,7 @@ class PromptCompressor:
             if idx not in used:
                 used.append(idx)
             if target_token < 0 or (
-                    force_context_number is not None and len(res) >= force_context_number
+                force_context_number is not None and len(res) >= force_context_number
             ):
                 break
         original_used = used
@@ -671,9 +720,9 @@ class PromptCompressor:
                 ]
                 used = sorted(used, key=lambda x: rank.index(x))
             dynamic_ratio = [
-                                i * (abs(dynamic_context_compression_ratio) / (N - 1)) if N > 1 else 0
-                                for i in range(-(N - 1), N, 2)
-                            ][::-1]
+                i * (abs(dynamic_context_compression_ratio) / (N - 1)) if N > 1 else 0
+                for i in range(-(N - 1), N, 2)
+            ][::-1]
             dynamic_ratio_map = {i: j for i, j in zip(original_used, dynamic_ratio)}
             dynamic_ratio = [dynamic_ratio_map[i] for i in used]
         else:
@@ -683,44 +732,43 @@ class PromptCompressor:
         return res, dynamic_ratio
 
     def control_sentence_budget(
-            self,
-            context: List[str],
-            target_token: float,
-            keep_first_sentence: int = 0,
-            keep_last_sentence: int = 0,
-            keep_sentence_number: int = 0,
-            high_priority_bonus: int = 100,
-            token_budget_ratio: float = 1.4,
-            question: str = "",
-            condition_in_question: str = "none",
-            rank_method: str = "longllmlingua",
+        self,
+        context: List[str],
+        target_token: float,
+        keep_first_sentence: int = 0,
+        keep_last_sentence: int = 0,
+        keep_sentence_number: int = 0,
+        high_priority_bonus: int = 100,
+        token_budget_ratio: float = 1.4,
+        question: str = "",
+        condition_in_question: str = "none",
+        rank_method: str = "longllmlingua",
     ):
         """
 
-        def control_sentence_budget(self, context, target_token, keep_first_sentence=0, keep_last_sentence=0, keep_sentence_number=0, high_priority_bonus=100, token_budget_ratio=1.4, question='', condition_in_question='none', rank_method='longllmlingua'):
 
+        Control the distribution of sentences in the given context to fit a token budget while maintaining important information.
 
-            Reduces the given context to fit a specified token budget by selectively keeping sentences according to the specified ranking method.
+        This function processes the provided context to distribute sentence prominence based on a variety of criteria,
+        such as whether to keep the first and/or last sentence, a fixed number of sentences to keep, and a measure
+        of sentence importance (sentence_ppl). It allows for the optional prioritization of sentences based on
+        a bonus for high priority sentences and ranks sentences according to a specified method. The resulting
+        selection of sentences aims to retain essential content within a token budget, scaled by a specified ratio.
 
-            The method processes a list of string representing the context, applies a natural language understanding model to rank each sentence's relevance to a given query, and keeps the most relevant sentences within the token budget constraint.
+        Args:
+            context (List[str]): The list of strings representing the context to be processed.
+            target_token (float): The target number of tokens to aim for within the token budget.
+            keep_first_sentence (int, optional): The number of initial sentences to keep. Defaults to 0.
+            keep_last_sentence (int, optional): The number of final sentences to keep. Defaults to 0.
+            keep_sentence_number (int, optional): The fixed number of sentences to keep from each section. Defaults to 0.
+            high_priority_bonus (int, optional): The bonus score added to high priority sentences. Defaults to 100.
+            token_budget_ratio (float, optional): The scaling factor applied to the token budget. Defaults to 1.4.
+            question (str, optional): The question or query related to the context. Defaults to an empty string.
+            condition_in_question (str, optional): The condition that affects sorting of sentence prominence. Defaults to 'none'.
+            rank_method (str, optional): The method used for ranking sentences. Defaults to 'longllmlingua'.
 
-            Parameters:
-                context (List[str]): List of context strings, where each string is a set of sentences from a document.
-                target_token (float): Initial target token budget which will be adjusted by the token_budget_ratio.
-                keep_first_sentence (int, optional): Number of initial sentences in each context string to prioritize. Defaults to 0.
-                keep_last_sentence (int, optional): Number of final sentences in each context string to prioritize. Defaults to 0.
-                keep_sentence_number (int, optional): Number of sentences to keep from each document irrespective of their relevance.
-                high_priority_bonus (int, optional): The priority score to add for sentences that are kept based on their position or explicit selection.
-                token_budget_ratio (float, optional): Ratio to scale the target_token budget for retaining sentences. Defaults to 1.4.
-                question (str, optional): The query string that sentences are ranked against for relevance. Defaults to an empty string.
-                condition_in_question (str, optional): Specific condition in question to consider in the ranking. Defaults to 'none'.
-                rank_method (str, optional): The ranking method name to be used to score and sort sentences. Defaults to 'longllmlingua'.
-
-            Returns:
-                List[str]: A list of context strings, where less relevant sentences have been removed to meet the token_budget.
-
-            Raises:
-                ValueError: If the rank_method provided is not recognized or is unsupported.
+        Returns:
+            List[str]: A list of strings representing the processed context with sentences selected to fit the token budget.
 
 
         """
@@ -728,25 +776,29 @@ class PromptCompressor:
         def keep_sentence(dem_idx: int, sent_keep: int):
             """
 
-            Calculates the perplexity of sentences within a document and applies a priority bonus to the sentences with the lowest perplexity scores, effectively 'keeping' them.
 
-            This function sorts the perplexity scores of sentences within a document identified by 'dem_idx'. It then increments the perplexity score of each sentence by a 'high_priority_bonus', but only for the number of sentences specified by 'sent_keep'. This can be used to prioritize certain sentences in subsequent processing, such as summarization or information retrieval tasks.
+            Selects a subset of sentences with the lowest perplexity scores and increases their priority.
+
+            This function sorts sentences based on their perplexity scores, which are a measure of how well
+            the language model predicts the sentence. It selects the top 'sent_keep' sentences with the
+            lowest perplexity scores. It then increases the priority of these selected sentences by adding
+            a 'high_priority_bonus' to their perplexity scores, potentially altering their order for future
+            processing steps.
 
             Args:
-                dem_idx (int): An index that identifies the document from which sentences should be evaluated.
-                sent_keep (int): The number of sentences to apply the 'high_priority_bonus' to. These are selected based on having the lowest perplexity scores.
+                dem_idx (int): The index of the demographic group for which sentences are being evaluated.
+                sent_keep (int): The number of sentences to keep based on their perplexity scores.
+
+            Side Effects:
+                Modifies the perplexity scores ('sentence_ppl') of selected sentences, by increasing them
+                using the global variable 'high_priority_bonus'. The 'sentence_ppl' and 'high_priority_bonus'
+                variables must be accessible within the scope of this function.
 
             Note:
-                - This function assumes that 'dem_g' is a global variable accessible within the function scope, which contains the perplexity scores for all sentences across all documents.
-                - 'sentence_ppl' is also assumed to be a global variable holding individual sentence perplexity scores.
-                - 'high_priority_bonus' is a predefined value that is added to the perplexity scores of the sentences being prioritized ('kept').
-
-            Returns:
-                None: This function modifies the perplexity scores in place and does not return any value.
-
-            Raises:
-                IndexError: If 'dem_idx' is out of bounds for the 'dem_g' list, an IndexError exception will be raised.
-                TypeError: If 'dem_idx' or 'sent_keep' is not passed as an integer, a TypeError will be raised.
+                The calling script must have the variables 'dem_g' (a list of lists containing sentence indices for
+                different demographic groups) and 'sentence_ppl' (a list of perplexity scores for individual sentences)
+                defined in the global scope. The function assumes that 'dem_g' and 'sentence_ppl' have been
+                populated appropriately before the function call.
             """
             idxs = sorted(dem_g[dem_idx], key=lambda x: sentence_ppl[x])[:sent_keep]
             for idx in idxs:
@@ -822,46 +874,51 @@ class PromptCompressor:
         return res
 
     def get_compressed_input(
-            self,
-            loss,
-            input_ids,
-            attention_mask,
-            end=200,
-            iterative_size=200,
-            threshold=0.5,
-            keep_flag=None,
-            split_token_id: int = 13,
-            start: int = 0,
-            self_loss=None,
-            self_input_ids=None,
-            self_attention_mask=None,
+        self,
+        loss,
+        input_ids,
+        attention_mask,
+        end=200,
+        iterative_size=200,
+        threshold=0.5,
+        keep_flag=None,
+        split_token_id: int = 13,
+        start: int = 0,
+        self_loss=None,
+        self_input_ids=None,
+        self_attention_mask=None,
     ):
         """
 
-        def get_compressed_input(self, loss, input_ids, attention_mask, end=200, iterative_size=200, threshold=0.5, keep_flag=None, split_token_id: int=13, start: int=0, self_loss=None, self_input_ids=None, self_attention_mask=None):
+        Computes a compressed version of the input by selectively keeping tokens based on their corresponding loss values and other provided criteria.
 
-            Gets a compressed version of the input by filtering out tokens based on loss values and a specified threshold. Only includes important tokens to reduce input length and computational needs.
+        Args:
+            loss (Tensor): A 1D tensor containing the loss values associated with each token.
+            input_ids (Tensor): The input tensor containing token IDs for the model's input sequence.
+            attention_mask (Tensor): A 1D tensor that indicates which tokens should be attended to.
+            end (int, optional): Position up to which tokens should be considered for compression. Defaults to 200.
+            iterative_size (int, optional): Number of tokens to factor in when performing iterative compression. Defaults to 200.
+            threshold (float, optional): Loss threshold to determine which tokens to keep during compression. Defaults to 0.5.
+            keep_flag (Tensor, optional): A binary tensor indicating tokens that must be kept regardless of the loss value. Defaults to None.
+            split_token_id (int, optional): The token ID used to identify split points in the input sequence. Defaults to 13.
+            start (int, optional): The starting index for evaluating loss in case of a self-comparison. Defaults to 0.
+            self_loss (Tensor, optional): A tensor of loss values for self-comparison. Defaults to None.
+            self_input_ids (Tensor, optional): The tensor containing token IDs for self-comparison. Defaults to None.
+            self_attention_mask (Tensor, optional): The tensor for attention mask in self-comparison. Defaults to None.
 
-            Parameters:
-                self: The instance of the class containing this method.
-                loss (torch.Tensor): Tensor containing loss values for each token.
-                input_ids (torch.Tensor): Tensor containing the IDs of the tokens.
-                attention_mask (torch.Tensor): Tensor indicating which tokens should be attended to.
-                end (int, optional): The position in the input sequence up to which tokens are considered. Defaults to 200.
-                iterative_size (int, optional): The size of the window used when iterating over tokens to determine which to keep. Defaults to 200.
-                threshold (float, optional): The threshold above which tokens are considered important based on loss values. Defaults to 0.5.
-                keep_flag (torch.Tensor, optional): Tensor indicating whether certain tokens should always be kept regardless of loss values. Defaults to None.
-                split_token_id (int, optional): The token ID used to identify split points in the sequence. Defaults to 13.
-                start (int, optional): The index to start from when evaluating the loss tensor. Defaults to 0.
-                self_loss (torch.Tensor, optional): An optional tensor containing self loss values for adjusting the importance of tokens. Can be used in iterative compression scenarios. Defaults to None.
-                self_input_ids (torch.Tensor, optional): Tensor containing the input IDs for the self attention context. Required if 'self_loss' is provided. Defaults to None.
-                self_attention_mask (torch.Tensor, optional): Tensor indicating which tokens in the self context should be attended to. Required if 'self_loss' is provided. Defaults to None.
+        Returns:
+            Tuple[Tensor, Tensor, Tensor, int, Tensor, Tensor, Tensor, Tensor]: A tuple containing:
+                - compressed_input_ids: The compressed sequence of input token IDs.
+                - compressed_attention_mask: The compressed attention mask corresponding to compressed_input_ids.
+                - keep_flag: Adjusted binary tensor indicating which tokens should be kept post-compression.
+                - end: An integer representing the updated end index after compression.
+                - loss: A tensor containing the updated loss values after compression.
+                - self_loss: The updated self_loss tensor after applying the compression criteria.
+                - self_compressed_input_ids: The compressed input IDs from self-comparison.
+                - self_compressed_attention_mask: The compressed attention mask from self-comparison.
 
-            Returns:
-                tuple: A tuple containing the compressed versions of the input_ids and attention_mask, along with possibly updated versions of keep_flag, end position, loss, self_loss, self_compressed_input_ids, and self_compressed_attention_mask.
-
-            Raises:
-                ValueError: If self_loss is provided but self_input_ids or self_attention_mask is None.
+        Raises:
+            ValueError: If any of the tensor shapes are not compatible with the operation.
         """
         if self_loss is not None:
             need_idx = torch.concat(
@@ -910,9 +967,9 @@ class PromptCompressor:
                     continue
                 now = input_ids[0][ii].detach().cpu().item()
                 if (
-                        now == split_token_id
-                        and last == split_token_id
-                        and keep_flag[ii].detach().cpu().item() == 0
+                    now == split_token_id
+                    and last == split_token_id
+                    and keep_flag[ii].detach().cpu().item() == 0
                 ):
                     need_idx[ii] = 0
                 else:
@@ -928,7 +985,7 @@ class PromptCompressor:
             ].unsqueeze(0)
             self_compressed_attention_mask = self_attention_mask[
                 self_attention_mask == 1
-                ][need_idx[start:]].unsqueeze(0)
+            ][need_idx[start:]].unsqueeze(0)
         else:
             self_compressed_input_ids, self_compressed_attention_mask = None, None
         if keep_flag is not None:
@@ -936,8 +993,8 @@ class PromptCompressor:
                 keep_flag = torch.cat(
                     [
                         keep_flag[:start],
-                        keep_flag[start: len(need_idx) + start][need_idx],
-                        keep_flag[start + len(need_idx):],
+                        keep_flag[start : len(need_idx) + start][need_idx],
+                        keep_flag[start + len(need_idx) :],
                     ]
                 )
             else:
@@ -955,11 +1012,26 @@ class PromptCompressor:
         )
 
     def get_estimate_threshold_base_distribution(
-            self, ppl, ratio: float, condition_flag: bool = False
+        self, ppl, ratio: float, condition_flag: bool = False
     ):
         """
 
-        def get_estimate_threshold_base_distribution(self, ppl, ratio: float, condition_flag: bool=False):
+        Calculate the threshold value for a list of perplexity (ppl) scores that corresponds to a certain ratio of the distribution.
+
+            The function filters out the maximum possible perplexity score, sorts the remaining scores based on the condition_flag,
+            and then selects the threshold perplexity score corresponding to the given ratio.
+
+            Parameters:
+                ppl (torch.Tensor): A tensor containing perplexity scores, must not have any score equal to 10000 (default filtering value).
+                ratio (float): A value between 0 and 1 that represents the ratio of the distribution to consider for the threshold calculation.
+                condition_flag (bool, optional): A flag to determine the sorting order of the perplexity scores. If True, sorts in ascending order.
+                    If False, sorts in descending order. Default is False.
+
+            Returns:
+                float: The perplexity value at the given ratio of the sorted list.
+
+            Raises:
+                ValueError: If the ratio provided is outside the range [0, 1].
         """
         ppl = ppl[ppl != 10000]
         target_token = max(0, min(len(ppl) - 1, int(len(ppl) * ratio) - 1))
@@ -972,19 +1044,57 @@ class PromptCompressor:
         )
 
     def iterative_compress_prompt(
-            self,
-            context: List[str],
-            target_token: float,
-            iterative_size: int = 200,
-            keep_split: bool = False,
-            split_token_id: int = 13,
-            start: int = 0,
-            dynamic_ratio: list = None,
-            condition_compare: bool = False,
+        self,
+        context: List[str],
+        target_token: float,
+        iterative_size: int = 200,
+        keep_split: bool = False,
+        split_token_id: int = 13,
+        start: int = 0,
+        dynamic_ratio: list = None,
+        condition_compare: bool = False,
     ):
         """
 
-        def iterative_compress_prompt(self, context: List[str], target_token: float, iterative_size: int=200, keep_split: bool=False, split_token_id: int=13, start: int=0, dynamic_ratio: list=None, condition_compare: bool=False):
+
+        Performs an iterative text compression on a given context to fit within a target token budget, possibly maintaining certain characteristics.
+
+        This function is part of a model that uses token-level perplexity and text compression to conditionally compress the input context.
+        It aims to achieve a target number of tokens ('target_token') through an iterative process, allowing for
+        different compression ratios and optionally preserving sentence demarcation when specified.
+
+        Args:
+            context (List[str]): A list of strings, each representing a text segment of the context to be compressed.
+            target_token (float): The desired token count to achieve after compression.
+            iterative_size (int, optional): The size of text to compress in each iteration. Defaults to 200.
+            keep_split (bool, optional): Specifies whether to preserve tokens that indicate sentence boundaries.
+                Defaults to False.
+            split_token_id (int, optional): The token ID used to identify sentence split points. Defaults to 13.
+            start (int, optional): The starting index from which to begin compression. Defaults to 0.
+            dynamic_ratio (list, optional): List of ratios for dynamic adjustment of compression during iteration.
+                Defaults to None.
+            condition_compare (bool, optional): Indicates whether to perform conditional comparison to maintain
+                the integrity of information relative to another set of data during compression. Defaults to False.
+
+        Returns:
+            tuple: A tuple containing the compressed input IDs and attention mask as tensors, clipped starting
+                from the 'start' index to the end of the available sequence.
+
+        Note:
+            'target_token', 'iterative_size', and 'dynamic_ratio' are used to determine the compression ratios
+            over iterations. This function assumes access to other methods like 'get_dynamic_compression_ratio',
+            'tokenizer', 'get_ppl', and 'get_compressed_input', which should be part of the class implementation.
+
+            The returned tensors 'compressed_input_ids' and 'compressed_attention_mask' represent the compressed
+            version of the input context that is amenable to downstream processing by a model expecting tokenized input.
+
+            This function is designed to work within the constraints imposed by transformer models, particularly
+            the maximum position embeddings limit of the model.
+
+            The use of 'device' attribute, 'max_position_embeddings', and 'cache_bos_num' suggests this function
+            is part of a class that handles tokenization and compression with respect to deep learning model constraints.
+
+
         """
         iterative_ratios = self.get_dynamic_compression_ratio(
             context, target_token, iterative_size, dynamic_ratio, start
@@ -1014,14 +1124,14 @@ class PromptCompressor:
             keep_flag = [
                 int(
                     (
-                            ii > 0
-                            and input_ids_numpy[ii] == split_token_id
-                            and input_ids_numpy[ii - 1] == split_token_id
+                        ii > 0
+                        and input_ids_numpy[ii] == split_token_id
+                        and input_ids_numpy[ii - 1] == split_token_id
                     )
                     or (
-                            ii < N - 1
-                            and input_ids_numpy[ii] == split_token_id
-                            and input_ids_numpy[ii + 1] == split_token_id
+                        ii < N - 1
+                        and input_ids_numpy[ii] == split_token_id
+                        and input_ids_numpy[ii + 1] == split_token_id
                     )
                 )
                 for ii in range(N)
@@ -1045,8 +1155,8 @@ class PromptCompressor:
                 compressed_attention_mask = compressed_attention_mask[:, e:]
                 past_key_values = [
                     [
-                        torch.cat([k[..., :s, :], k[..., s + e:, :]], dim=-2),
-                        torch.cat([v[..., :s, :], v[..., s + e:, :]], dim=-2),
+                        torch.cat([k[..., :s, :], k[..., s + e :, :]], dim=-2),
+                        torch.cat([v[..., :s, :], v[..., s + e :, :]], dim=-2),
                     ]
                     for k, v in past_key_values
                 ]
@@ -1066,12 +1176,12 @@ class PromptCompressor:
                         )
                     self_compressed_input_ids = self_compressed_input_ids[:, e:]
                     self_compressed_attention_mask = self_compressed_attention_mask[
-                                                     :, e:
-                                                     ]
+                        :, e:
+                    ]
                     self_past_key_values = [
                         [
-                            torch.cat([k[..., :s, :], k[..., s + e:, :]], dim=-2),
-                            torch.cat([v[..., :s, :], v[..., s + e:, :]], dim=-2),
+                            torch.cat([k[..., :s, :], k[..., s + e :, :]], dim=-2),
+                            torch.cat([v[..., :s, :], v[..., s + e :, :]], dim=-2),
                         ]
                         for k, v in self_past_key_values
                     ]
@@ -1090,7 +1200,7 @@ class PromptCompressor:
                     past_loss = torch.cat(
                         [past_loss, torch.zeros_like(loss)[: end - 1 - len(past_loss)]]
                     )
-                past_loss[ready_end: end - 1] = loss
+                past_loss[ready_end : end - 1] = loss
                 loss = past_loss
             else:
                 past_loss = loss
@@ -1118,11 +1228,11 @@ class PromptCompressor:
                             [
                                 self_past_loss,
                                 torch.zeros_like(self_loss)[
-                                : end - 1 - start - len(self_past_loss)
+                                    : end - 1 - start - len(self_past_loss)
                                 ],
                             ]
                         )
-                    self_past_loss[self_ready_end: end - start - 1] = self_loss
+                    self_past_loss[self_ready_end : end - start - 1] = self_loss
                     self_loss = self_past_loss
                 else:
                     self_past_loss = self_loss
@@ -1190,32 +1300,61 @@ class PromptCompressor:
         return compressed_input_ids[:, start:], compressed_attention_mask[:, start:]
 
     def recover(
-            self,
-            original_prompt: str,
-            compressed_prompt: str,
-            response: str,
+        self,
+        original_prompt: str,
+        compressed_prompt: str,
+        response: str,
     ):
         """
 
-        def recover(self, original_prompt: str, compressed_prompt: str, response: str) -> str:
+        Calculates a recovered version of a response using the original and compressed prompts.
+
+        This function attempts to reconstruct the response based on the mapping from the
+        original uncompressed prompt to a compressed version and a response generated
+        from the compressed prompt. It uses the `match_from_compressed` inner function to
+        transform words found in the compressed prompt back into their original form
+        found in the original prompt. Words that are not found are included as they are.
+
+        Args:
+            original_prompt (str): The original uncompressed prompt.
+            compressed_prompt (str): The compressed form of the original prompt.
+            response (str): The response generated from the compressed prompt which may
+                            contain compressed tokens or phrases that need to be
+                            expanded back to their original form.
+
+        Returns:
+            str: The recovered response with tokens and phrases expanded to their
+                 original form as per the original prompt.
+
+        Raises:
+            This function does not explicitly raise any exceptions, but might raise
+            exceptions indirectly if there are issues during processing, such as
+            if the tokenization process fails or if there are mismatches in data structures
+            used for reconstructing the original text from the compressed version.
         """
 
         def match_from_compressed(response_word):
             """
 
+            Determines the best matching sequence of words inside a compressed text block that matches the given response word.
 
-                Calculates the best match substring from the compressed token representation of a response word.
+            This function searches for the sequence that has the highest overlap with the response word within a certain window size.
+            It utilizes a tokenizer to convert the response words into input IDs, and performs a search within a pre-defined corpus
+            defined by `original_input_ids` which presumably contains tokenized input IDs of a larger text.
 
-                This function uses tokenized input ids for the response word and searches for the best matching sequence within the original token stream represented by the `original_input_ids`. The match is scored based on the number of consecutive tokens found and the compactness of the matching sequence. The best match is determined either by a higher score of consecutive token matches or by a shorter length of the sequence in case of a tie in the score. The purpose of this function is to locate a matching tokenized substring within a larger token stream, possibly for applications such as information retrieval or text alignment.
+            Args:
+                response_word (str): The word or sequence of words to be matched within the compressed text.
 
-                Parameters:
-                    response_word (str): The word or phrase that needs to be matched within the token stream.
+            Returns:
+                str: The best matching sequence of words from the original corpus. If no match is found, returns the original
+                     response word.
 
-                Returns:
-                    str: The best matching substring decoded from `original_input_ids`, or the original `response_word` if no match is found.
+            Note:
+                This docstring assumes the presence of instance attributes and possibly other methods such as `self.tokenizer`
+                which are not detailed within this function. The original_input_ids and the length of the corpus (M) are also assumed
+                to be attributes or otherwise accessible variables within the context of this function's execution.
 
-                Raises:
-                    This function relies on external state (`self.tokenizer`, `original_input_ids`, and `M`) and may raise various exceptions related to index errors or tokenization errors if these states are not appropriately initialized or managed.
+
 
             """
             response_input_ids = self.tokenizer(
@@ -1232,8 +1371,8 @@ class PromptCompressor:
                 for x in range(1, n):
                     idx = bisect.bisect_right(response_c[response_input_ids[x]], y)
                     if (
-                            idx >= len(response_c[response_input_ids[x]])
-                            or response_c[response_input_ids[x]][idx] - y > 10
+                        idx >= len(response_c[response_input_ids[x]])
+                        or response_c[response_input_ids[x]][idx] - y > 10
                     ):
                         continue
                     c += 1
@@ -1252,7 +1391,7 @@ class PromptCompressor:
             #     l -= 1
             # while r < M - 1 and not self.tokenizer.convert_ids_to_tokens(original_input_ids[l]).startswith("_"):
             #     l -= 1
-            return self.tokenizer.decode(original_input_ids[res[0]: res[1]])
+            return self.tokenizer.decode(original_input_ids[res[0] : res[1]])
 
         response_words = response.split(" ")
 
@@ -1269,86 +1408,71 @@ class PromptCompressor:
                 continue
             r = l
             while (
-                    r + 1 < N and " ".join(response_words[l: r + 2]) in compressed_prompt
+                r + 1 < N and " ".join(response_words[l : r + 2]) in compressed_prompt
             ):
                 r += 1
 
-            match_words = match_from_compressed(" ".join(response_words[l: r + 1]))
+            match_words = match_from_compressed(" ".join(response_words[l : r + 1]))
             recovered_response_words.append(match_words)
             l = r + 1
         return " ".join(recovered_response_words)
 
     def get_rank_results(
-            self,
-            context: list,
-            question: str,
-            rank_method: str,
-            condition_in_question: str,
-            context_tokens_length: list,
+        self,
+        context: list,
+        question: str,
+        rank_method: str,
+        condition_in_question: str,
+        context_tokens_length: list,
     ):
         """
 
-        def get_rank_results(self, context: list, question: str, rank_method: str, condition_in_question: str, context_tokens_length: list):
-            "/**
-            Computes a ranked list of documents from the given context that are most relevant to a specified question using diverse ranking methods.
+        Calculates the ranking of documents in a given corpus based on a query and specified ranking method.
 
-            This function offers a flexible querying interface that can integrate with various text ranking mechanisms such as BM25, gzip-based similarity, sentence-BERT models, OpenAI's embedding models, among others. The final ranking is influenced by additional factors like question conditions and context token lengths, allowing for bespoke adjustments based on the method chosen.
+            This function serves as a wrapper to call different ranking algorithms depending on the rank method provided.
+            It supports various state-of-the-art algorithms and model-based ranking methods by utilizing their respective
+            libraries and APIs. The ranking is mostly based on the relevance of documents in the corpus to the given query.
 
             Args:
-                context (list): A list of documents (strings) among which the relevant ones are to be found.
-                question (str): The query or question that the documents are checked against for relevance.
-                rank_method (str): A string representing the ranking method to be used. It should match one of the predefined method names.
-                condition_in_question (str): A string that represents additional conditions considered in questioning to adjust the ranking.
-                context_tokens_length (list): A list of integers representing the lengths of tokens in each of the documents in the context.
+                context (list): A list of strings, which constitute the corpus of documents to rank.
+                question (str): The query string based on which the ranking of the documents is to be determined.
+                rank_method (str): A string identifier to select the ranking algorithm or model. Supported methods include
+                                  'bm25', 'gzip', 'sentbert', 'openai', 'longllmlingua', 'llmlingua', 'bge',
+                                  'bge_reranker', 'bge_llmembedder', 'jinza', 'voyageai', 'cohere'.
+                condition_in_question (str): An additional parameter for certain ranking methods that influences how the
+                                             ranking is calculated. Specific usage varies based on the ranking method.
+                context_tokens_length (list): A list of integers representing the token length of each document in the
+                                              context. This is used in specific ranking methods that account for
+                                              document length.
 
             Returns:
-                list: A list of tuples, where each tuple contains the index of the document in the original context list and an associated score or sorting criteria. For most methods, the score is not meaningful and the ranking is implicit in the order of indices.
+                list: A list of tuples, where each tuple contains an index of the document in the original context list
+                      and a zero placeholder score, sorted according to their relevance to the query as determined by
+                      the specified rank method.
 
             Raises:
-                ValueError: An error occurs if the rank_method specified is not amongst the supported methods.
+                ValueError: If an unsupported rank method is specified.
 
             Note:
-                Users must ensure that the necessary third-party libraries (like rank_bm25, sentence_transformers, gzip, openai, transformers, voyageai, cohere) are installed and configured properly for some of the ranking methods to work.
-            */
-        }
+                Each internal ranking function requires specific third-party libraries, models, or API access and
+                may need additional configuration or setup outside the context of this function.
+                The zero placeholder score in the returned tuples does not represent actual scores and is intended
+                for compatibility with expected return formats that may include score values.
         """
 
         def get_distance_bm25(corpus, query):
             """
 
-            Calculate the BM25 distance between the query and each document in the corpus.
+            Calculates and ranks documents in a corpus based on their BM25 score relative to a given query.
 
-            This function computes similarity scores using the BM25 ranking function
-            applied to a tokenized corpus of documents and a tokenized query. The
-            BM25 ranking function considers term frequency (TF) and inverse document
-            frequency (IDF), as well as document length normalization, making it
-            a popular and robust method for scoring documents in information retrieval.
-            The higher the BM25 score, the more relevant a document is considered
-            to the query.
+            The function first tokenizes both the corpus and the query, splitting them into lists of words. It then uses the BM25Okapi model from the `rank_bm25` library to calculate the relevance of each document in the corpus to the query. The BM25 score for each document with respect to the query is computed, and the documents are sorted in descending order of their scores, implying that the most relevant document is ranked first.
 
-            Parameters:
-                corpus (List[str]): A list of document strings to be searched within.
-                query (str): The query string for which the similarity scores will be
-                             calculated relative to each document in the corpus.
+            Args:
+                corpus (List[str]): The list of documents, each document as a string.
+                query (str): The search query as a string.
 
             Returns:
-                List[Tuple[int, int]]: A sorted list of tuples, each containing the
-                                       index of a document in the corpus and a placeholder
-                                       zero. The list is sorted in descending order of
-                                       BM25 scores, meaning that documents are ranked from
-                                       most to least relevant to the query.
-
-            Raises:
-                ImportError: If the 'rank_bm25' package is not installed.
-
-            Note:
-                The placeholder zero in the returned tuples does not carry any meaningful
-                information in the current implementation and is merely used to conform to
-                the output format expected by the system consuming this function.
-
-            The 'rank_bm25' package must be installed to use this function. To install,
-            run `pip install rank_bm25`.
-
+                List[Tuple[int, int]]: A list of tuples, each containing the index of the document in the corpus and a static integer `0`, sorted by decreasing BM25 score.
             """
             from rank_bm25 import BM25Okapi
 
@@ -1362,24 +1486,53 @@ class PromptCompressor:
         def get_distance_gzip(corpus, query):
             """
 
-            Calculate the normalized compression distance between multiple documents and a query string using gzip compression.
 
-            This function utilizes the concept of the normalized compression distance to determine the similarity between a corpus of documents and a given query string. It encodes and compresses the documents and the query, and computes a score reflecting their relative compressibility when concatenated. Lower scores correspond to higher similarity.
+                Calculate and rank documents in the corpus based on their gzip-compressed distance to a query.
 
-            The function returns a list of tuples, with each tuple containing the index of a document in the corpus and its associated relative score. The list is sorted by score in ascending order, so documents more similar to the query will appear first.
+                This function computes the distance of each document in the corpus from the provided query using
+                gzip compression. The distance score is calculated using a custom get_score function, which
+            takes two strings, compresses them separately and together, and measures the difference.
+                The distances are then used to rank the documents in ascending order of their distance score.
 
-            Args:
-                corpus (list of str): A list of document strings to compare against the query.
-                query (str): The query string to compare with the documents in the corpus.
+                Parameters
+                ----------
+                corpus : list
+                    A list of strings, where each string represents a document.
+                query : str
+                    A query string whose distance to each document in the corpus is to be calculated.
 
-            Returns:
-                list of tuple: A sorted list of tuples where each tuple contains an index of the document in the original corpus and its associated score. The sorting is based on the scores in ascending order.
+                Returns
+                -------
+                list
+                    A list of tuples, each containing an index corresponding to a document and a fixed value of 0.
+                    The list is sorted by the ascending distance of the documents from the query.
+
+
             """
 
             def get_score(x, y):
                 """
 
-                def get_score(x, y):
+                Calculates a normalized compression-based similarity score between two strings.
+
+                The function computes the similarity score by using gzip compression to assess how
+                much the compressed version of the concatenation of the two strings saves in
+                space in comparison to the compressed versions of the individual strings. The
+                score is given by the difference in the lengths of the compressed concatenated
+                string and the smaller of the compressed individual strings, normalized by the
+                length of the larger of the compressed individual strings.
+
+                Args:
+                    x (str): The first string to be compared.
+                    y (str): The second string to be compared.
+
+                Returns:
+                    float: A score that represents the normalized compression-based similarity
+                    between the two input strings. A lower score indicates higher similarity.
+
+                Note:
+                    This function requires the 'gzip' module to be imported prior to its use.
+
                 """
                 cx, cy = len(gzip.compress(x.encode())), len(gzip.compress(y.encode()))
                 cxy = len(gzip.compress(f"{x} {y}".encode()))
@@ -1394,7 +1547,37 @@ class PromptCompressor:
         def get_distance_sentbert(corpus, query):
             """
 
-            def get_distance_sentbert(corpus, query):
+
+            Compute the semantic similarity between corpus documents and a query string using Sentence-BERT.
+
+            This function leverages the SentenceTransformer model to encode documents and a query into embeddings and
+            computes the cosine similarity score. It returns indexes of the documents in the corpus sorted by
+            similarity score.
+
+            Parameters:
+                corpus (list of str): A list of documents represented as strings.
+                query (str): The query string whose similarity to the corpus is to be computed.
+
+            Returns:
+                list of tuple: A list of tuples, each containing the index of the document in the original
+                corpus list and a placeholder 0 value (for compatibility with certain applications),
+                sorted by the similarity score in descending order.
+
+            Note:
+                The function assumes that the retrieval_model attribute is a SentenceTransformer instance.
+                It will instantiate a new model and assign it to retrieval_model if it doesn't exist or if the
+                retrieval_model_name does not match the rank_method variable. The rank_method is not
+                defined within the function and should be globally defined or passed as a parameter.
+
+                The function imports the necessary SentenceTransformer and util modules from the sentence_transformers package.
+
+                The placeholder '0' in the returned tuples does not represent an actual score and may pertain to
+                additional context or functionality not described here.
+
+            Raises:
+                ImportError: If the required modules are not available.
+
+
             """
             from sentence_transformers import SentenceTransformer, util
 
@@ -1410,7 +1593,23 @@ class PromptCompressor:
         def get_distance_openai(corpus, query):
             """
 
-            def get_distance_openai(corpus, query):
+            Calculates semantic distance between a given query and a set of documents using OpenAI's text-embedding model and returns sorted indices with scores indicating the closeness of each document to the query in descending order of relevance.
+
+                This function utilizes OpenAI's API to generate embeddings for the input query and a corpus of documents. It uses the dot product of the embeddings as a semantic similarity measure, facilitated by the 'sentence_transformers' library. The function then returns an array of tuples, each containing a corpus index and a corresponding placeholder score, which is always 0 in this context. The array is sorted by descending similarity, indicating that documents more semantically similar to the query appear first.
+
+                Args:
+                    corpus (list of str): The list of document strings to compare against the query.
+                    query (str): The query string to compare against the document corpus.
+
+                Returns:
+                    list of tuple: A sorted list of tuples where each tuple consists of an index integer and a score float. The index corresponds to the position of the document in the original corpus, and the score is currently a placeholder (0), as sorting is based solely on the negative dot product values.
+
+                Raises:
+                    openai.error.OpenAIError: If there is an error while making requests to the OpenAI API.
+                    ValueError: If the input types are not as expected or the OpenAI API returns unexpected data.
+
+                Note:
+                    This function requires that the 'openai' and 'sentence_transformers' libraries are installed and that an OpenAI API key is configured correctly. The function also alters several global settings of the 'openai' package, which could affect subsequent calls to OpenAI's API in the same session.
             """
             import openai
             from sentence_transformers import util
@@ -1426,23 +1625,16 @@ class PromptCompressor:
             def get_embed(text):
                 """
 
+                Generates an embedding for the given text by utilizing OpenAI's Embedding API.
 
-                    Retrieves the embedding representation of a given text using the OpenAI API.
+                Args:
+                    text (str): The input text for which the embedding is to be generated. Newline characters in the text will be replaced with spaces.
 
-                    This function takes a string of text, preprocesses it by replacing newline characters with spaces, and then uses the OpenAI API's
-                    Embedding endpoint to generate an embedding for the text. It assumes that there is an OpenAI client (`openai`) already
-                    instantiated with the appropriate API key and that the `engine` variable is defined globally or in the calling scope to specify
-                    the engine to be used for creating embeddings.
+                Returns:
+                    List[float]: The embedding vector as a list of floats, retrieved from the OpenAI's Embedding API response for the processed input text.
 
-                    Args:
-                        text (str): The text for which to generate the embedding. Newline characters in the text will be replaced with spaces.
-
-                    Returns:
-                        list: The embedding of the given text as a list of floats. This is extracted from the API's response.
-
-                    Raises:
-                        openai.error.OpenAIError: If the OpenAI API call fails for reasons such as authentication issues or invalid inputs.
-
+                Raises:
+                    OpenAIError: If the embedding generation fails or API returns an error.
                 """
                 return openai.Embedding.create(
                     input=[text.replace("\n", " ")], engine=engine
@@ -1457,7 +1649,21 @@ class PromptCompressor:
         def get_distance_sentbert_bge(corpus, query):
             """
 
-            def get_distance_sentbert_bge(corpus, query):
+
+            Calculates the semantic distance between a query and a list of documents using the 'BAAI/bge-large-en-v1.5' Sentence-BERT model.
+
+            This function first checks if there is an already loaded BERT model for retrieval, and if not, loads the 'BAAI/bge-large-en-v1.5' model. It then encodes both the documents and the query into high-dimensional vectors using Sentence-BERT. It computes the dot product between the query and document embeddings to find the semantic similarity. The resulting distances are returned as a list of tuples, where each tuple contains the index of the document and a fixed value of 0 (used for compatibility purposes with other methods), sorted by semantic similarity in ascending order (most relevant first).
+
+            Args:
+                corpus (list of str): A list containing the text of the documents to be compared with the query.
+                query (str): The query string whose distance is to be computed with each document in the corpus.
+
+            Returns:
+                list of tuple: A list of tuples (document_index, fixed_value), where 'document_index' is the index of the document in the 'corpus' list and 'fixed_value' is always 0. The list is sorted by increasing semantic distance, meaning the first element is the closest in meaning to the query.
+
+            Raises:
+                ImportError: If the sentence_transformers library is not installed or other required imports are missing.
+
             """
             from sentence_transformers import SentenceTransformer, util
 
@@ -1475,28 +1681,22 @@ class PromptCompressor:
         def get_distance_bge_ranker(corpus, query):
             """
 
-            def get_distance_bge_ranker(corpus, query):
+            Computes the ranking of a given corpus of texts against a search query using the BGE reranker model with specified configurations.
 
-                Computes the relevance scores of documents in the corpus to the given query using the 'BAAI/bge-reranker-large' transformer model.
+                This function takes a list of texts as the corpus and a single text as the query to be matched against the corpus. It initializes and utilizes a pretrained transformer model to rank the corpus in relation to the query. The ranking process involves tokenizing the texts, using the transformer to score them, and sorting based on these scores.
 
-                The function takes a list of text documents and a query string, and it returns a sorted list of tuples where each tuple contains the index of the document in the original corpus and the associated score which is set to 0.
-
-                The ranking is determined by the relevance of the corpus documents to the query as scored by the transformer model. Higher relevance results in a lower index in the sorted output.
-
-                Parameters:
-                corpus (list of str): A list of text documents to be ranked.
-                query (str): The query string that will be used to rank the documents in the corpus.
+                Args:
+                    corpus (List[str]): A list of strings where each string is a document in the corpus to compare against the query.
+                    query (str): The query string to be compared against each document in the corpus.
 
                 Returns:
-                list of (int, float): A sorted list of tuples, where each tuple contains the index of the document in the original corpus and the score set to 0, sorted by descending relevance to the query.
+                    List[Tuple[int, int]]: A list of tuples where each tuple contains the index of the document in the corpus and a fixed value of 0, sorted according to their relevance to the query.
 
-                Note:
-                - The retrieval model is loaded from 'BAAI/bge-reranker-large' if it is not already loaded or if the 'rank_method' variable has changed.
-                - The model and tokenizer are loaded using the transformers library `AutoModelForSequenceClassification` and `AutoTokenizer` classes.
-                - The documents and the query are tokenized, scored, and sorted based on relevance within a no-grad context to avoid tracking gradients, which is unnecessary during the inference.
-                - The outputs are moved to the CPU, and scores are converted to a float for consistent processing.
-                - The method assumes the use of a PyTorch device object stored in self.device where the model is run.
-
+                Notes:
+                    - The function assumes that the 'BAAI/bge-reranker-large' model from the huggingface model repository is being used.
+                    - Prior to calling this function, ensure that PyTorch, the transformers library, and all necessary model dependencies are properly installed and configured.
+                    - The function uses the `self.device` attribute to determine the device (CPU/GPU) where the computations will be performed.
+                    - The function caches the model and tokenizer within the instance to prevent reloading on subsequent calls if the same ranking method is used.
             """
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -1533,27 +1733,21 @@ class PromptCompressor:
         def get_distance_bge_llmembedder(corpus, query):
             """
 
-            get_distance_bge_llmembedder(corpus, query)
+            Calculates the similarity scores between a query and a corpus of documents using the embeddings from a language model provided by 'BAAI/llm-embedder' from the Hugging Face library's transformers package. The function is intended for the task of document retrieval by computing the pairwise similarity between the query embedding and each document embedding in the corpus. To ensure performance, the function first checks if the retrieval model is loaded; if not, it loads the tokenizer and model and sets them to evaluation mode. The inputs are tokenized, padded, truncated, and converted into tensors which are then fed to the model to obtain the embeddings. The CLS token embedding is used as the document representation and normalized before similarity is computed using dot product. The similarities are then used to sort the document indices in descending order of relevance to the query.
 
-            Computes the distance between a query and a corpus of documents using embeddings from the Language Model Embedder.
+                Args:
+                    corpus (List[str]): A list of documents in the corpus to be compared with the query.
+                    query (str): The query string whose relevance is to be evaluated against each document in the corpus.
 
-            This function initializes and utilizes a language model embedder (specifically the 'BAAI/llm-embedder' from Hugging Face's transformer library) to encode both the query and each document in the corpus, and then calculates the cosine similarity between the query and document embeddings. The similarity scores are used to perform document retrieval, ranking each document in the corpus relative to how semantically similar it is to the given query.
+                Returns:
+                    List[Tuple[int, float]]: A sorted list of tuples, where each tuple contains an index of a document in the corpus and its corresponding similarity score to the query. The list is sorted by decreasing similarity score.
 
-            Args:
-                corpus (list of str): A list of documents, each represented as a string.
-                query (str): The query string used to find relevant documents within the corpus.
+                Note:
+                    - This function requires a GPU to perform the computation efficiently.
+                    - The model and tokenizer must be available through the Huggingface transformers library.
+                    - The function assumes that the tokenizer and model are attributes of the class instance (`self`) the function is part of and are accessed accordingly.
+                    - The function also assumes the presence of a context manager for torch.no_grad to disable gradient calculations.
 
-            Returns:
-                list of tuple: A sorted list of tuples, where each tuple contains an index of the document in the corpus and a dummy value (0), sorted in descending order of similarity to the query.
-
-            Note:
-                The function assumes that it is being called within an instance of a class that contains 'self.retrieval_model' and 'self.retrieval_model_name', as well as 'self.device'. It updates or initializes 'self.retrieval_model' and 'self.retrieval_model_name' based on the 'rank_method' (which is not provided as an argument to this function and is assumed to be a part of the class).
-
-                The embeddings are obtained using the '[CLS]' token representation from the last hidden layer of the language model. Before computing the cosine similarity, embeddings are normalized using the L2 norm. The cosine similarity is computed as the dot product of the normalized query and document embeddings. The function does not persist these embeddings and does not modify the original corpus.
-
-                This function requires the 'transformers' library to be installed and a compatible device (e.g., a GPU) to be available for the model to run on.
-
-                This function operates in a no-gradient context to avoid computing gradients and to work efficiently in evaluation mode.
             """
             from transformers import AutoModel, AutoTokenizer
 
@@ -1608,23 +1802,24 @@ class PromptCompressor:
             """
 
 
-                Calculates the distance between a corpus of documents and a query string using a pre-trained embedding model from Jina AI.
+            Calculate the similarity distance between a list of document embeddings and a query embedding using cosine similarity.
 
-                This function encodes both the corpus and the query string into vector embeddings using the 'jinaai/jina-embeddings-v2-base-en' model. It then calculates the cosine similarity between the query vector and each of the document vectors. The function sorts the documents based on their similarity to the query in descending order and returns a list of tuples, each consisting of the document index and a placeholder value 0.
+            This function first ensures that the appropriate retrieval model is loaded and matches the specified `rank_method`. It encodes the corpus
+            and the query text using the `jinaai/jina-embeddings-v2-base-en` embedding model. Then, it calculates the cosine similarity scores
+            between the encoded query and each document in the corpus. Finally, it sorts the documents based on their similarity to the query in
+            descending order and returns the sorted indices along with a score placeholder (0).
 
-                Parameters:
-                    corpus (list of str): A list of documents as strings.
-                    query (str): The query string for which the similarity against the corpus is to be computed.
+            Args:
+                corpus (List[str]): The list of document texts to be compared with the query.
+                query (str): The query text that needs to be compared against the documents in the corpus.
+                rank_method (str): The embedding model method used for encoding the corpus and query.
 
-                Returns:
-                    list of tuple: Each tuple contains an index of the document in the 'corpus' list and a placeholder similarity score of 0. The list is sorted by the similarity of each document to the query, in descending order.
+            Returns:
+                List[Tuple[int, int]]: A list of tuples containing the sorted indices and a score placeholder.
+                Each tuple consists of the document index in the original corpus and a placeholder for the similarity score (0).
 
-                Note:
-                    - The model and tokenizer are assumed to be compatible with the corpus and query provided.
-                    - The function assumes that 'self.retrieval_model' and 'self.retrieval_model_name' are attributes of the class instance which 'get_distance_jinza' is a part of. The function updates these attributes accordingly.
-                    - The 'AutoModel.from_pretrained' method is used to load the pre-trained model, and 'trust_remote_code=True' indicates that the code associated with the remote model can be trusted and executed.
-                    - The function uses numpy for calculations and requires the HuggingFace 'transformers' library for the model.
-                    - The actual similarity score is not returned, only the index of the documents in sorted order is returned with a placeholder similarity score of 0.
+            Raises:
+                ValueError: If the retrieval_model_name does not match the specified rank_method.
 
             """
             from numpy.linalg import norm
@@ -1634,27 +1829,23 @@ class PromptCompressor:
             def cos_sim(a, b):
                 """
 
+                Computes the cosine similarity between two vectors.
 
-                    Calculate the cosine similarity between two vectors.
+                    The cosine similarity is calculated as the dot product of the two vectors (a and b)
+                    divided by the multiplication of the Euclidean norms (lengths) of the vectors.
 
-                    Cosine similarity is a measure of similarity between two non-zero vectors of an inner product space that measures the cosine of the angle between them.
-                    The cosine similarity is particularly used in positive space, where the outcome is neatly bounded in [0,1].
+                    This function assumes that the input vectors are represented as numpy arrays and
+                    that they are already in the appropriate shape for vector multiplication.
 
-                    Parameters:
-                    a : array
-                        A numpy array representing the first vector.
-
-                    b : array
-                        A numpy array representing the second vector.
+                    Args:
+                        a (numpy.ndarray): A 1D array representing the first vector.
+                        b (numpy.ndarray): A 1D array representing the second vector.
 
                     Returns:
-                    float
-                        A float value representing the cosine similarity between the two input vectors. If both vectors are all-zeroes, the function will return NaN, which stands for 'Not a Number'.
+                        float: The cosine similarity between vector a and vector b, ranging from -1 to 1.
 
                     Raises:
-                    ValueError
-                        If the input arrays are not of compatible dimensions for dot product calculation or if they do not conform to the expected format (e.g., non-numeric types).
-
+                        ValueError: If the input arrays are not 1D, or their lengths do not match.
                 """
                 return (a @ b.T) / (norm(a) * norm(b))
 
@@ -1678,7 +1869,19 @@ class PromptCompressor:
         def get_distance_voyageai(corpus, query):
             """
 
-            def get_distance_voyageai(corpus, query):
+            Computes the semantic similarity between a query and a corpus of documents using Voyage.ai's embedding model and the dot product similarity measure from the Sentence Transformers library. This function generates embeddings for each document in the corpus and the query, then calculates the similarity score for each document with respect to the query. The scores are used to sort the documents in descending order of relevance to the query, i.e., the higher the score, the more relevant the document is considered to be. The sorted indices of the documents along with a dummy score (always 0 in this implementation) are returned as a list of tuples.
+
+            Args:
+                corpus (List[str]): A list of strings representing the documents.
+                query (str): The query string against which document similarity is to be computed.
+
+            Returns:
+                List[Tuple[int, int]]: A sorted list of tuples containing the indices and dummy scores of the documents in the corpus, arranged in order of their relevance to the query based on the similarity scores.
+
+            Remarks:
+                This function requires `voyageai` and `sentence_transformers` libraries.
+                The `voyageai.api_key` must be set before calling this function, which authenticates the user against Voyage.ai API.
+                The `cpu()` call on `dot_score` suggests that this function is compatible with PyTorch tensors; therefore, the embeddings are expected to be PyTorch tensors.
             """
             import voyageai
             from sentence_transformers import util
@@ -1688,7 +1891,19 @@ class PromptCompressor:
             def get_embed(text):
                 """
 
-                def get_embed(text):
+
+                Computes the embedding for a given piece of text using the Voyage AI model.
+
+                This function takes in a string of text and returns the computed embedding from the specified Voyage AI model.
+
+                Args:
+                    text (str): The text for which the embedding should be computed.
+
+                Returns:
+                    np.ndarray: An array representing the embedding of the input text.
+
+                Raises:
+                    Exception: If the embedding model fails to compute the embedding or if the `voyageai` module encounters an issue.
                 """
                 return voyageai.get_embedding(text, model="voyage-01")
 
@@ -1701,7 +1916,21 @@ class PromptCompressor:
         def get_distance_cohere(corpus, query):
             """
 
-            def get_distance_cohere(corpus, query):
+            Uses the Cohere API to rerank a given corpus of documents based on their semantic relevance to a query string.
+
+                This function interacts with the Cohere API, requiring a valid API key to be provided. It reranks the documents in the given corpus
+                based on how semantically similar they are to the input query. The corpus is a list of strings, each representing a document. The query
+                is a string that represents the search term. The function then maps the reranked results to their original indices in the corpus
+                list and returns a list of tuples, with each tuple containing an index (representing the original position of the document in the
+                corpus) and a placeholder value '0' (which currently does not represent any score or rank metric).
+
+                Arguments:
+                    corpus (list of str): A list of documents (strings) to be reranked.
+                    query (str): The query string used for reranking the corpus.
+
+                Returns:
+                    list of tuples: Each tuple contains an index (int) of the document in the original corpus and a placeholder value '0'.
+
             """
             import cohere
 
@@ -1718,21 +1947,34 @@ class PromptCompressor:
         def get_distance_longllmlingua(corpus, query):
             """
 
-            Calculates a relevance score for each document in a corpus related to a given query under a certain condition.
+            Calculate a contextually modified distance measure between the query and each document in the corpus.
 
-            This function computes a score for each document in the provided corpus based on how likely the document's language matches the given query under a specified condition. If the condition is 'none', the results are sorted in descending order; otherwise, they are sorted in ascending order. It does not take the length of context into consideration as the related term in the formula is multiplied by zero.
+                This function computes a personalized log-likelihood metric for each document
+                in the corpus in relation to a given query. It uses the perplexity measure returned
+                by `get_condition_ppl` and modifies it based on the document's length and
+                a condition. It finally sorts the documents based on the condition.
 
-            Parameters:
-                corpus (list): A list of documents against which the query is to be evaluated.
-                query (str): The query string for which relevance is to be determined.
-                condition_in_question (str): The specified condition that affects the sorting direction.
-                context_tokens_length (list): A list of token lengths corresponding to each document.
+                Args:
+                    corpus (list of str): A list of documents to be evaluated.
+                    query (str): The query string used for comparison with the documents.
 
-            Returns:
-                list of tuples: A sorted list where each tuple contains the document index and the computed score.
+                Returns:
+                    list of tuple: A sorted list of tuples where each tuple contains (index, modified_perplexity_score)
+                    for the documents. The index corresponds to the position of the document in the original corpus.
 
-            Raises:
-                NameError: If 'condition_in_question' or 'context_tokens_length' are not passed as arguments despite being used in the method.
+                Raises:
+                    NameError: If `condition_in_question` is undefined.
+                    AttributeError: If `self.get_condition_ppl` method is not defined in the current context.
+
+                Note:
+                    The sorting direction is determined by `condition_in_question`. If this variable is equal to 'none',
+                    the score is multiplied by -1, otherwise by 1.
+
+                    The variable `context_tokens_length` must be a list of lengths corresponding to each document in `corpus`.
+                    The actual implementation of `get_condition_ppl` is not provided and should be
+                    implemented separately. It is expected to return the perplexity of the document given a contextuous addition.
+
+
             """
             context_ppl = [
                 self.get_condition_ppl(
