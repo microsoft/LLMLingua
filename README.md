@@ -15,7 +15,7 @@ https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-6
 
 ## News
 
-- 🖥 You can fine the slides of EMNLP‘23 in <b><a href="https://drive.google.com/file/d/1GxQLAEN8bBB2yiEdQdW4UKoJzZc0es9t/view">Session 5</a></b> and <b><a href="https://drive.google.com/file/d/1LJBUfJrKxbpdkwo13SgPOqugk-UjLVIF/view">BoF-6</a></b>;
+- 🖥 You can find the slides of EMNLP‘23 in <b><a href="https://drive.google.com/file/d/1GxQLAEN8bBB2yiEdQdW4UKoJzZc0es9t/view">Session 5</a></b> and <b><a href="https://drive.google.com/file/d/1LJBUfJrKxbpdkwo13SgPOqugk-UjLVIF/view">BoF-6</a></b>;
 - 📚 We launched a [blog](https://medium.com/@iofu728/longllmlingua-bye-bye-to-middle-loss-and-save-on-your-rag-costs-via-prompt-compression-54b559b9ddf7) to showcase the benefits in RAG and long context scenarios. Please see the script of the example at [this link](https://github.com/microsoft/LLMLingua/blob/main/examples/Retrieval.ipynb);
 - 🎈 We launched a [project page](https://llmlingua.com/) showcasing real-world case studies, including RAG, Online Meetings, CoT, and Code;
 - 👨‍🦯 We have launched a series of examples in the ['./examples'](./examples) folder, which include [RAG](./examples/RAG.ipynb), [Online Meeting](./examples/OnlineMeeting.ipynb), [CoT](./examples/CoT.ipynb), [Code](./examples/Code.ipynb), and [RAG using LlamaIndex](./examples/RAGLlamaIndex.ipynb);
