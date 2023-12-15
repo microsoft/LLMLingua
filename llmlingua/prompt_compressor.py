@@ -34,15 +34,21 @@ class PromptCompressor:
         trust_remote_code = model_config.get("trust_remote_code", True)
         if "trust_remote_code" not in model_config:
             model_config["trust_remote_code"] = trust_remote_code
-        config = AutoConfig.from_pretrained(model_name, trust_remote_code=trust_remote_code)
-        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=trust_remote_code)
+        config = AutoConfig.from_pretrained(
+            model_name, trust_remote_code=trust_remote_code
+        )
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, trust_remote_code=trust_remote_code
+        )
         if model_config.get("pad_to_left", True):
             tokenizer.padding_side = "left"
             tokenizer.pad_token_id = (
                 config.pad_token_id if config.pad_token_id else tokenizer.eos_token_id
             )
         self.device = (
-            device_map if any(key in device_map for key in ["cuda", "cpu"]) else "cuda"
+            device_map
+            if any(key in device_map for key in ["cuda", "cpu", "mps"])
+            else "cuda"
         )
         if "cuda" in device_map or "cpu" in device_map:
             model = AutoModelForCausalLM.from_pretrained(
@@ -51,7 +57,7 @@ class PromptCompressor:
                 device_map=device_map,
                 config=config,
                 ignore_mismatched_sizes=True,
-                **model_config
+                **model_config,
             )
         else:
             model = AutoModelForCausalLM.from_pretrained(
@@ -62,7 +68,7 @@ class PromptCompressor:
                 offload_folder="/tmp/offload",
                 offload_state_dict=True,
                 cache_dir="/tmp/cache",
-                **model_config
+                **model_config,
             )
         self.tokenizer = tokenizer
         self.model = model
@@ -402,18 +408,6 @@ class PromptCompressor:
 
         if dynamic_context_compression_ratio > 0:
             N = len(used)
-            if condition_in_question:
-                rank = [
-                    i
-                    for i, _ in self.get_rank_results(
-                        context,
-                        question,
-                        "longllmlingua",
-                        "after",
-                        context_tokens_length,
-                    )
-                ]
-                used = sorted(used, key=lambda x: rank.index(x))
             dynamic_ratio = [
                 i * (abs(dynamic_context_compression_ratio) / (N - 1)) if N > 1 else 0
                 for i in range(-(N - 1), N, 2)
@@ -570,7 +564,7 @@ class PromptCompressor:
             need_idx[keep_flag == 1] = 1
         last = -1
         if keep_flag is not None:
-            for ii in range(end - iterative_size, end):
+            for ii in range(max(0, end - iterative_size), end):
                 if need_idx[ii] != 1:
                     continue
                 now = input_ids[0][ii].detach().cpu().item()
@@ -707,6 +701,8 @@ class PromptCompressor:
                     ]
                     for k, v in past_key_values
                 ]
+                if keep_flag is not None:
+                    keep_flag = keep_flag[e:]
                 end, ready_end = end - e, ready_end - e
                 if condition_compare:
                     s = min(s, self_past_key_values[0][0].shape[2] - e)
