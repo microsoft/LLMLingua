@@ -22,7 +22,7 @@ llm_lingua = PromptCompressor(
 ### Parameters
 
 - model_name(str), the name of small language model from huggingface. Default set to "NousResearch/Llama-2-7b-hf";
-- device_map(str), the device environment for using small models, like 'cuda', 'cpu', 'balanced', 'balanced_low_0', 'auto'. Default set to "cuda";
+- device_map(str), the device environment for using small models, like 'cuda', 'cpu', 'mps', 'balanced', 'balanced_low_0', 'auto'. Default set to "cuda";
 - model_config(dict, optional), the config of huggingface model. Default set to {};
 - open_api_config(dict, optional), the config of openai which use in OpenAI Embedding in coarse-level prompt compression. Default set to {};
 
