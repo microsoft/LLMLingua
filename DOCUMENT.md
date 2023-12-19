@@ -91,7 +91,7 @@ compressed_prompt = llm_lingua.compress_prompt(
 - **add_instruction**(bool, optional), control whether add the instuct before prompt in Iterative Token-level Question-aware Fine-Grained Compression, default set to False;
 - **rank_method**(bool, optional), control the rank method use in Coarse-level Prompt Compression, support embedding methods, reranker methods, LLMLingua, and LongLLMLingua, default set to "llmlingua";
     - "llmlingua": The coarse-grained prompt compression method in **LLMLingua**;
-    - "longllmlingua": The question-aware coarse-grained prompt compression method in **LongLLMLingua** (**Recommandation**);
+    - "longllmlingua": The question-aware coarse-grained prompt compression method in **LongLLMLingua** (**Recommendation**);
     - Traditional retrieval methods:
         - "bm25": a bag-of-words retrieval function that ranks a set of documents based on the query terms appearing in each document, regardless of their proximity within the document;
         - "gzip": a retrieval method based on gzip compression, refer to https://aclanthology.org/2023.findings-acl.426/;
