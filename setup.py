@@ -1,3 +1,6 @@
+# Copyright (c) 2023 Microsoft
+# Licensed under The MIT License [see LICENSE for details]
+ 
 from setuptools import find_packages, setup
 
 # PEP0440 compatible formatted version, see:
