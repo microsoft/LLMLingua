@@ -1,3 +1,6 @@
+# Copyright (c) 2023 Microsoft
+# Licensed under The MIT License [see LICENSE for details]
+
 import bisect
 from collections import defaultdict
 from typing import List
