@@ -110,7 +110,6 @@ class PromptCompressor:
             )
             past_key_values = response.past_key_values
 
-        loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
         shift_logits = response.logits[..., :-1, :].contiguous()
         shift_labels = input_ids[..., past_length + 1 : end].contiguous()
         # Flatten the tokens
