@@ -228,7 +228,7 @@ class PromptCompressor:
             )
 
         if condition_flag:
-            prefix = question + "\n\n" + instruction if add_instruction else question
+            prefix = f"{question}\n\n{instruction if add_instruction else question}"
             if (
                 self.get_token_length(prefix) + 2 + iterative_size * 2
                 > self.max_position_embeddings
