@@ -278,11 +278,12 @@ class PromptCompressor:
 
         compressed_tokens = len(encoding.encode(compressed_prompt))
         saving = (origin_tokens - compressed_tokens) * 0.06 / 1000
+        ratio = 1 if compressed_tokens == 0 else origin_tokens / compressed_tokens
         return {
             "compressed_prompt": compressed_prompt,
             "origin_tokens": origin_tokens,
             "compressed_tokens": compressed_tokens,
-            "ratio": f"{origin_tokens/compressed_tokens:.1f}x",
+            "ratio": f"{ratio:.1f}x",
             "saving": f", Saving ${saving:.1f} in GPT-4.",
         }
 
