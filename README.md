@@ -65,7 +65,7 @@ These tools offer an efficient solution to compress prompts by up to **20x**, en
 
 ![Demo of LLMLingua](./images/LLMLingua_demo.png)
 
-PS: This demo is based on the alt-gpt project. Special thanks to @Livshitz for their valuable contribution.
+PS: This demo is based on the [alt-gpt](https://github.com/feedox/alt-gpt) project. Special thanks to @Livshitz for their valuable contribution.
 
 If you find this repo helpful, please cite the following papers:
 
