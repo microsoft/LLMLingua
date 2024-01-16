@@ -264,6 +264,8 @@ class PromptCompressor:
                 .replace("<s>", "")
             )
         else:
+            if condition_flag:
+                context = context[1:]
             compressed_prompt = "\n\n".join(context)
 
         res = []
@@ -374,7 +376,7 @@ class PromptCompressor:
         context_budget: str = "+100",
     ):
         if force_context_ids is not None:
-            return [context[ii] for ii in force_context_ids]
+            return [context[ii] for ii in force_context_ids], [0] * len(force_context_ids)
         demostrations_sort = self.get_rank_results(
             context,
             question,
