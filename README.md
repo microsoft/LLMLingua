@@ -119,6 +119,10 @@ compressed_prompt = llm_lingua.compress_prompt(prompt, instruction="", question=
 #  'ratio': '11.2x',
 #  'saving': ', Saving $0.1 in GPT-4.'}
 
+## Or use the phi-2 model,
+## Before that, you need to update the transformers to the github version, like pip install -U git+https://github.com/huggingface/transformers.git
+llm_lingua = PromptCompressor("microsoft/phi-2")
+
 ## Or use the quantation model, like TheBloke/Llama-2-7b-Chat-GPTQ, only need <8GB GPU memory.
 ## Before that, you need to pip install optimum auto-gptq
 llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"revision": "main"})
