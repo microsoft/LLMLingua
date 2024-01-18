@@ -141,9 +141,21 @@ recovered_response = llm_lingua.recover(
 
 ## Advanced Usage
 
-### Utilizing Quantized Small Models
+### Utilizing Small Models
 
-(LLong)LLMLingua supports the use of quantized small models such as `TheBloke/Llama-2-7b-Chat-GPTQ`, which require less than 8GB of GPU memory.
+### Using phi-2
+
+Thanks to the efforts of the community, phi-2 is now available for use in LLMLingua. 
+
+Before using it, please update your transformers to the GitHub version by running `pip install -U git+https://github.com/huggingface/transformers.git`.
+
+```python
+llm_lingua = PromptCompressor("microsoft/phi-2")
+```
+
+### Quantized Models
+
+(Long)LLMLingua supports the use of quantized small models such as `TheBloke/Llama-2-7b-Chat-GPTQ`, which require less than 8GB of GPU memory.
 
 To begin, ensure you install the necessary packages with:
 
