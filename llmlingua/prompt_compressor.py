@@ -159,7 +159,7 @@ class PromptCompressor:
         context: List[str],
         instruction: str = "",
         question: str = "",
-        ratio: float = 0.5,
+        ratio: float = 2.0,
         target_token: float = -1,
         iterative_size: int = 200,
         force_context_ids: List[int] = None,
@@ -189,13 +189,16 @@ class PromptCompressor:
             context (List[str]): List of context strings that form the basis of the prompt.
             instruction (str, optional): Additional instruction text to be included in the prompt. Default is an empty string.
             question (str, optional): A specific question that the prompt is addressing. Default is an empty string.
-            ratio (float, optional): The minimum compression ratio target to be achieved. Default is 0.5. The actual compression ratio 
-                generally exceeds the specified target, but there can be fluctuations due to differences in tokenizers. If specified, 
-                it should be a float greater than or equal to 1.0, representing the target compression ratio.
+            ratio (float, optional): The minimum compression ratio target to be achieved. The compression ratio is defined 
+                the same as in Wikipedia [Data compression ratio](https://en.wikipedia.org/wiki/Data_compression_ratio):
+                .. math::\text{Compression Ratio} = \frac{\text{Uncompressed Size}}{\text{Compressed Size}}
+                Default is 2.0. The actual compression ratio generally exceeds the specified target, but there can be 
+                fluctuations due to differences in tokenizers. If specified, it should be a float greater than or equal 
+                to 1.0, representing the target compression ratio.
             target_token (float, optional): The maximum number of tokens to be achieved. Default is -1, indicating no specific target. 
                 The actual number of tokens after compression should generally be less than the specified target_token, but there can 
                 be fluctuations due to differences in tokenizers. If specified, compression will be based on the target_token as 
-                the sole criterion, overriding the ratio.
+                the sole criterion, overriding the ``ratio``.
             iterative_size (int, optional): The number of tokens to consider in each iteration of compression. Default is 200.
             force_context_ids (List[int], optional): List of specific context IDs to always include in the compressed result. Default is None.
             force_context_number (int, optional): The number of context sections to forcibly include. Default is None.
@@ -223,8 +226,8 @@ class PromptCompressor:
                 - "origin_tokens" (int): The original number of tokens in the input.
                 - "compressed_tokens" (int): The number of tokens in the compressed output.
                 - "ratio" (str): The compression ratio achieved, in a human-readable format.
+                - "rate" (str): The compression rate achieved, calculated as the token number after compression divided by the original token number.
                 - "saving" (str): Estimated savings in GPT-4 token usage.
-
         """
         if not context:
             context = [" "]
@@ -258,7 +261,7 @@ class PromptCompressor:
                     + question_tokens_length
                     + sum(context_tokens_length)
                 )
-                * (1 - ratio)
+                * (1 / ratio)
                 - instruction_tokens_length
                 - (question_tokens_length if concate_question else 0)
             )
@@ -351,11 +354,13 @@ class PromptCompressor:
         compressed_tokens = len(encoding.encode(compressed_prompt))
         saving = (origin_tokens - compressed_tokens) * 0.06 / 1000
         ratio = 1 if compressed_tokens == 0 else origin_tokens / compressed_tokens
+        rate = 1 / ratio
         return {
             "compressed_prompt": compressed_prompt,
             "origin_tokens": origin_tokens,
             "compressed_tokens": compressed_tokens,
             "ratio": f"{ratio:.1f}x",
+            "rate": f"{rate * 100:.1f}%",
             "saving": f", Saving ${saving:.1f} in GPT-4.",
         }
 
