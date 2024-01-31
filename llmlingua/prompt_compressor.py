@@ -446,51 +446,90 @@ class PromptCompressor:
         seg_info: List[List[tuple]] = None,
     ):
         if start:
-            context_length = context_length[1:]
+            context = context[1:]
         global_dynamic_rate, global_dynamic_compress, tmp_context = [], [], []
         for context_idx, text in enumerate(context):
             text_seen = 0
-            new_text = []
             for seg_idx, (seg_len, seg_ratio, seg_compress) in enumerate(seg_info[context_idx]):
-                new_text.append(text[text_seen:text_seen + seg_len])
+                seg_text = text[text_seen : text_seen + seg_len]
+                if seg_idx == len(seg_info[context_idx]) - 1 and context_idx != len(context) - 1:
+                    seg_text += '\n\n'
+                tmp_context.append(seg_text)
                 if seg_compress:
                     global_dynamic_rate.append(1 / seg_ratio)
                 else:
                     global_dynamic_rate.append(1.0)
                 global_dynamic_compress.append(seg_compress)
                 text_seen += seg_len
-            tmp_context.append((" " + self.tokenizer.bos_token).join(new_text))
-        tmp_context = ("\n\n " + self.tokenizer.bos_token).join(tmp_context)
-        context_input_ids = self.tokenizer(tmp_context).input_ids
+        origin_text = '\n\n'.join(context)
+        assert len("".join(tmp_context)) == len(origin_text)
+        dynamic_compression_ratio = self.token_segment(origin_text, iterative_size, tmp_context, global_dynamic_rate, global_dynamic_compress)
+        return dynamic_compression_ratio
 
-        assert context_input_ids.count(1) == len(global_dynamic_rate)
-        indexes_of_seperator = [i for i, v in enumerate(context_input_ids) if v == 1][1:] + [len(context_input_ids)]
+    def token_segment(self, text, iterative_size, segments, global_dynamic_rate, global_dynamic_compress):
+        assert len(segments) == len(global_dynamic_rate) == len(global_dynamic_compress)
+        context_input_ids = self.tokenizer(text).input_ids
+        segments_inputs_ids = self.tokenizer((" " + self.tokenizer.bos_token).join(segments)).input_ids
+        
+        segments_token_len = [0]
+        seg_token_len = 0
+        for i, token_id in enumerate(segments_inputs_ids):
+            token = self.tokenizer.convert_ids_to_tokens(token_id)
+            if (token_id == self.tokenizer.bos_token_id) and i:
+                segments_token_len.append(seg_token_len + segments_token_len[-1])
+                seg_token_len = 0
+                continue
+            seg_token_len += len(token)
+        if seg_token_len:
+            segments_token_len.append(seg_token_len + segments_token_len[-1])
+        
+        assert segments_token_len[-1] == sum([len(self.tokenizer.convert_ids_to_tokens(id)) for id in context_input_ids])
+        
+        
+        token_seen, segment_id, origin_len = 0, 0, 0
+        dynamic_compression_ratio, local_compresssion_ratio = [], []
+        
+        for i, token_id in enumerate(context_input_ids):
+            token_len = len(self.tokenizer.convert_ids_to_tokens(token_id))
+            if origin_len + token_len > segments_token_len[segment_id + 1]:
+                last_ratio = global_dynamic_rate[segment_id]
+                possible_ratio, possible_compress = [], []
+                while origin_len + token_len > segments_token_len[segment_id + 1]:
+                    possible_ratio.append(global_dynamic_rate[segment_id])
+                    possible_compress.append(global_dynamic_compress[segment_id])
+                    segment_id += 1
+                possible_ratio.append(global_dynamic_rate[segment_id])
+                possible_compress.append(global_dynamic_compress[segment_id])
+                if False in possible_compress:
+                    new_ratio = 1.0
+                else:
+                    new_ratio = min(possible_ratio)
+                if new_ratio == last_ratio:
+                    local_compresssion_ratio.append((i - token_seen + 1, last_ratio))
+                    token_seen = i + 1
+                elif new_ratio != global_dynamic_rate[segment_id]:
+                    local_compresssion_ratio.append((i - token_seen, last_ratio))
+                    local_compresssion_ratio.append((1, new_ratio))
+                else:
+                    local_compresssion_ratio.append((i - token_seen, last_ratio))
+                    token_seen = i
+            if (i + 1) % iterative_size == 0:
+                if token_seen != i + 1:
+                    local_compresssion_ratio.append((i - token_seen + 1, global_dynamic_rate[segment_id]))
+                dynamic_compression_ratio.append(local_compresssion_ratio[:])
+                token_seen = i + 1
+                local_compresssion_ratio = []
+            if origin_len + token_len == segments_token_len[segment_id + 1]:
+                if token_seen != i + 1:
+                    local_compresssion_ratio.append((i - token_seen + 1, global_dynamic_rate[segment_id]))
+                token_seen = i + 1
+                segment_id += 1
+            origin_len += token_len
+        if local_compresssion_ratio:
+            dynamic_compression_ratio.append(local_compresssion_ratio)
 
-        res, idx, token_seen, last, last_target = [], 0, 0, 0, []
-        while idx < len(indexes_of_seperator):
-            if indexes_of_seperator[idx] - token_seen > iterative_size - last:
-                last_target.append(
-                    (iterative_size - last, global_dynamic_rate[idx])
-                )
-                res.append(last_target)
-                token_seen += iterative_size - last
-                last, last_target = 0, []
-                k = (indexes_of_seperator[idx] - token_seen) // iterative_size
-                res.extend(
-                    [[(iterative_size, global_dynamic_rate[idx])]] * k
-                )
-                token_seen += k * iterative_size
-
-            if indexes_of_seperator[idx] - token_seen:
-                last_target.append(
-                    (indexes_of_seperator[idx] - token_seen, global_dynamic_rate[idx])
-                )
-                last += indexes_of_seperator[idx] - token_seen
-            token_seen = indexes_of_seperator[idx] + 1
-            idx += 1
-        if last_target:
-            res.append(last_target)
-        return res
+        assert len(context_input_ids) == sum([sum([x[0] for x in l]) for l in dynamic_compression_ratio])
+        return dynamic_compression_ratio
 
     def control_context_budget(
         self,
