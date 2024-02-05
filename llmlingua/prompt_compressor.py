@@ -468,68 +468,48 @@ class PromptCompressor:
 
     def token_segment(self, text, iterative_size, segments, global_dynamic_rate, global_dynamic_compress):
         assert len(segments) == len(global_dynamic_rate) == len(global_dynamic_compress)
-        context_input_ids = self.tokenizer(text).input_ids
-        segments_inputs_ids = self.tokenizer((" " + self.tokenizer.bos_token).join(segments)).input_ids
-        
-        segments_token_len = [0]
-        seg_token_len = 0
-        for i, token_id in enumerate(segments_inputs_ids):
-            token = self.tokenizer.convert_ids_to_tokens(token_id)
-            if (token_id == self.tokenizer.bos_token_id) and i:
-                segments_token_len.append(seg_token_len + segments_token_len[-1])
-                seg_token_len = 0
-                continue
-            seg_token_len += len(token)
-        if seg_token_len:
-            segments_token_len.append(seg_token_len + segments_token_len[-1])
-        
-        assert segments_token_len[-1] == sum([len(self.tokenizer.convert_ids_to_tokens(id)) for id in context_input_ids])
-        
-        
-        token_seen, segment_id, origin_len = 0, 0, 0
-        dynamic_compression_ratio, local_compresssion_ratio = [], []
-        
-        for i, token_id in enumerate(context_input_ids):
-            token_len = len(self.tokenizer.convert_ids_to_tokens(token_id))
-            if origin_len + token_len > segments_token_len[segment_id + 1]:
-                last_ratio = global_dynamic_rate[segment_id]
-                possible_ratio, possible_compress = [], []
-                while origin_len + token_len > segments_token_len[segment_id + 1]:
-                    possible_ratio.append(global_dynamic_rate[segment_id])
-                    possible_compress.append(global_dynamic_compress[segment_id])
-                    segment_id += 1
-                possible_ratio.append(global_dynamic_rate[segment_id])
-                possible_compress.append(global_dynamic_compress[segment_id])
-                if False in possible_compress:
-                    new_ratio = 1.0
-                else:
-                    new_ratio = min(possible_ratio)
-                if new_ratio == last_ratio:
-                    local_compresssion_ratio.append((i - token_seen + 1, last_ratio))
-                    token_seen = i + 1
-                elif new_ratio != global_dynamic_rate[segment_id]:
-                    local_compresssion_ratio.append((i - token_seen, last_ratio))
-                    local_compresssion_ratio.append((1, new_ratio))
-                else:
-                    local_compresssion_ratio.append((i - token_seen, last_ratio))
-                    token_seen = i
+        assert text == "".join(segments)
+        text_input_ids = self.tokenizer(text, add_special_tokens=False).input_ids
+        decode_window = 3
+        seg_idx, seg_seen, token_seen_num, last_rate = 0, 0, 0, -1
+        dynamic_compression_rate, local_compresssion_rate = [], []
+        for i in range(len(text_input_ids)):
+            if i < decode_window:
+                id_pre, id_cur = text_input_ids[: i], text_input_ids[: i + 1]
+            else:
+                id_pre, id_cur = text_input_ids[i - decode_window + 1: i], text_input_ids[i - decode_window + 1: i + 1]
+            cur_word = self.tokenizer.decode(id_cur)[len(self.tokenizer.decode(id_pre)):]
+            cur_word_len = len(cur_word)
+            if cur_word_len and cur_word_len >= len(segments[seg_idx]) - seg_seen:
+                possible_rate, possible_compress = [], []
+                while cur_word_len and cur_word_len >= len(segments[seg_idx]) - seg_seen:
+                    possible_rate.append(global_dynamic_rate[seg_idx])
+                    possible_compress.append(global_dynamic_compress[seg_idx])
+                    cur_word_len -= len(segments[seg_idx]) - seg_seen
+                    seg_idx += 1
+                    seg_seen = 0
+                if cur_word_len:
+                    possible_rate.append(global_dynamic_rate[seg_idx])
+                    possible_compress.append(global_dynamic_compress[seg_idx])
+                new_rate = 1.0 if False in possible_compress else min(possible_rate)
+            else:
+                new_rate = global_dynamic_rate[seg_idx]
+            if new_rate != last_rate and i - token_seen_num:
+                local_compresssion_rate.append((i - token_seen_num, last_rate))
+                token_seen_num = i
+            last_rate = new_rate
+            seg_seen += cur_word_len
             if (i + 1) % iterative_size == 0:
-                if token_seen != i + 1:
-                    local_compresssion_ratio.append((i - token_seen + 1, global_dynamic_rate[segment_id]))
-                dynamic_compression_ratio.append(local_compresssion_ratio[:])
-                token_seen = i + 1
-                local_compresssion_ratio = []
-            if origin_len + token_len == segments_token_len[segment_id + 1]:
-                if token_seen != i + 1:
-                    local_compresssion_ratio.append((i - token_seen + 1, global_dynamic_rate[segment_id]))
-                token_seen = i + 1
-                segment_id += 1
-            origin_len += token_len
-        if local_compresssion_ratio:
-            dynamic_compression_ratio.append(local_compresssion_ratio)
-
-        assert len(context_input_ids) == sum([sum([x[0] for x in l]) for l in dynamic_compression_ratio])
-        return dynamic_compression_ratio
+                if token_seen_num != i + 1:
+                    local_compresssion_rate.append((i + 1 - token_seen_num, last_rate))
+                    token_seen_num = i + 1
+                dynamic_compression_rate.append(local_compresssion_rate[:])
+                local_compresssion_rate = []
+        if token_seen_num != len(text_input_ids):
+            local_compresssion_rate.append((len(text_input_ids) - token_seen_num, last_rate))
+        if local_compresssion_rate != []:
+            dynamic_compression_rate.append(local_compresssion_rate[:])
+        return dynamic_compression_rate
 
     def control_context_budget(
         self,
@@ -889,7 +869,7 @@ class PromptCompressor:
                 context, iterative_size, dynamic_ratio, start, segments_info
             )
         context = "\n\n".join(context)
-        tokenized_text = self.tokenizer(context, return_tensors="pt")
+        tokenized_text = self.tokenizer(context, return_tensors="pt", add_special_tokens=False)
         input_ids = tokenized_text["input_ids"].to(self.device)
         attention_mask = tokenized_text["attention_mask"].to(self.device)
 
@@ -1053,7 +1033,7 @@ class PromptCompressor:
                 else:
                     threshold = self.get_estimate_threshold_base_distribution(
                         loss, ratio, False
-                    )
+                            )
 
                 (
                     compressed_input_ids,
