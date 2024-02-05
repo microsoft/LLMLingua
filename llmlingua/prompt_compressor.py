@@ -466,7 +466,14 @@ class PromptCompressor:
         dynamic_compression_ratio = self.token_segment(origin_text, iterative_size, tmp_context, global_dynamic_rate, global_dynamic_compress)
         return dynamic_compression_ratio
 
-    def token_segment(self, text, iterative_size, segments, global_dynamic_rate, global_dynamic_compress):
+    def token_segment(
+        self, 
+        text: str, 
+        iterative_size: int, 
+        segments: List[str], 
+        global_dynamic_rate: List[float], 
+        global_dynamic_compress: List[bool],
+    ):
         assert len(segments) == len(global_dynamic_rate) == len(global_dynamic_compress)
         assert text == "".join(segments)
         text_input_ids = self.tokenizer(text, add_special_tokens=False).input_ids
