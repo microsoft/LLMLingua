@@ -181,6 +181,9 @@ class PromptCompressor:
         add_instruction: bool = False,
         rank_method: str = "llmlingua",
         concate_question: bool = True,
+        context_segs: List[str] = None, 
+        context_segs_ratio: List[float] = None, 
+        context_segs_compress: List[bool] = None,
     ):
         """
         Compresses the given context.
@@ -269,7 +272,7 @@ class PromptCompressor:
         condition_in_question = condition_in_question.replace("_condition", "")
 
         if len(context) > 1 and use_context_level_filter:
-            context, dynamic_ratio, _ = self.control_context_budget(
+            context, dynamic_ratio, context_used = self.control_context_budget(
                 context,
                 context_tokens_length,
                 target_token,
@@ -282,11 +285,15 @@ class PromptCompressor:
                 rank_method=rank_method,
                 context_budget=context_budget,
             )
+            if context_segs is not None:
+                context_segs = [context_segs[idx] for idx in context_used]
+                context_segs_ratio = [context_segs_ratio[idx] for idx in context_used]
+                context_segs_compress = [context_segs_compress[idx] for idx in context_used]
         else:
             dynamic_ratio = [0.0] * len(context)
 
         if use_sentence_level_filter:
-            context, _ = self.control_sentence_budget(
+            context, segments_info = self.control_sentence_budget(
                 context,
                 target_token,
                 keep_first_sentence=keep_first_sentence,
@@ -297,7 +304,17 @@ class PromptCompressor:
                 question=question,
                 condition_in_question=condition_in_question,
                 rank_method=rank_method,
+                context_segs=context_segs,
+                context_segs_ratio=context_segs_ratio,
+                context_segs_compress=context_segs_compress,
             )
+        elif context_segs is not None:
+            segments_info = []
+            for context_idx in range(len(context)):
+                segments_info.append([(len(seg_text), seg_ratio, seg_compress) for seg_text, seg_ratio, seg_compress in zip(context_segs[context_idx], context_segs_ratio[context_idx], context_segs_compress[context_idx])])
+            segments_info = [self.concate_segment_info(segment_info) for segment_info in segments_info]
+        else:
+            segments_info = None
 
         if condition_flag:
             prefix = question + "\n\n" + instruction if add_instruction else question
@@ -330,6 +347,7 @@ class PromptCompressor:
                 start=start,
                 dynamic_ratio=dynamic_ratio,
                 condition_compare=condition_compare,
+                segments_info=segments_info,
             )
             compressed_prompt = (
                 self.tokenizer.batch_decode(context[0])[0]
@@ -1485,23 +1503,6 @@ class PromptCompressor:
             context = [context]
         context, context_segs, context_segs_ratio, context_segs_compress = self.segment_structured_context(context)
         
-        assert not (
-            rank_method == "longllmlingua" and not question
-        ), "In the LongLLMLingua, it is necessary to set a question."
-        if condition_compare and "_condition" not in condition_in_question:
-            condition_in_question += "_condition"
-        if rank_method == "longllmlingua":
-            if condition_in_question == "none":
-                condition_in_question = "after"
-        elif rank_method == "llmlingua":
-            condition_in_question = (
-                "none"
-                if "_condition" not in condition_in_question
-                else "none_condition"
-            )
-        origin_tokens = len(
-            encoding.encode("\n\n".join([instruction] + context + [question]).strip())
-        )
         context_tokens_length = [self.get_token_length(c) for c in context]
         instruction_tokens_length, question_tokens_length = self.get_token_length(
             instruction
@@ -1517,7 +1518,6 @@ class PromptCompressor:
                 - instruction_tokens_length
                 - (question_tokens_length if concate_question else 0)
             )
-        
         segment_comprehensive_rate = (
             sum(
                 sum(
@@ -1538,117 +1538,37 @@ class PromptCompressor:
         assert abs(segment_comprehensive_rate - global_compression_rate) < 0.1, \
             f"The comprehensive compression rate of each segment, {segment_comprehensive_rate}, does not match the target compression ratio, {global_compression_rate}."
 
-        condition_flag = "_condition" in condition_in_question
-        condition_in_question = condition_in_question.replace("_condition", "")
-
-        if len(context) > 1 and use_context_level_filter:
-            context, dynamic_ratio, context_used = self.control_context_budget(
-                context,
-                context_tokens_length,
-                target_token,
-                force_context_ids,
-                force_context_number,
-                question,
-                condition_in_question,
-                reorder_context=reorder_context,
-                dynamic_context_compression_ratio=dynamic_context_compression_ratio,
-                rank_method=rank_method,
-                context_budget=context_budget,
-            )
-            context_segs = [context_segs[idx] for idx in context_used]
-            context_segs_ratio = [context_segs_ratio[idx] for idx in context_used]
-            context_segs_compress = [context_segs_compress[idx] for idx in context_used]
-        else:
-            dynamic_ratio = [0.0] * len(context)
-
-        if use_sentence_level_filter:
-            context, segments_info = self.control_sentence_budget(
-                context,
-                target_token,
-                keep_first_sentence=keep_first_sentence,
-                keep_last_sentence=keep_last_sentence,
-                keep_sentence_number=keep_sentence_number,
-                high_priority_bonus=high_priority_bonus,
-                token_budget_ratio=token_budget_ratio,
-                question=question,
-                condition_in_question=condition_in_question,
-                rank_method=rank_method,
-                context_segs=context_segs,
-                context_segs_ratio=context_segs_ratio,
-                context_segs_compress=context_segs_compress,
-            )
-        else:
-            segments_info = []
-            for context_idx in range(len(context)):
-                segments_info.append([(len(seg_text), seg_ratio, seg_compress) for seg_text, seg_ratio, seg_compress in zip(context_segs[context_idx], context_segs_ratio[context_idx], context_segs_compress[context_idx])])
-            segments_info = [self.concate_segment_info(segment_info) for segment_info in segments_info]
+        return self.compress_prompt(
+            context, 
+            instruction, 
+            question, 
+            ratio,
+            target_token, 
+            iterative_size, 
+            force_context_ids, 
+            force_context_number,
+            use_sentence_level_filter, 
+            use_context_level_filter, 
+            use_token_level_filter, 
+            keep_split, 
+            keep_first_sentence, 
+            keep_last_sentence, 
+            keep_sentence_number, 
+            high_priority_bonus, 
+            context_budget, 
+            token_budget_ratio, 
+            condition_in_question, 
+            reorder_context, 
+            dynamic_context_compression_ratio, 
+            condition_compare, 
+            add_instruction,
+            rank_method, 
+            concate_question,
+            context_segs=context_segs, 
+            context_segs_ratio=context_segs_ratio, 
+            context_segs_compress=context_segs_compress,
+        )
         
-        if condition_flag:
-            prefix = question + "\n\n" + instruction if add_instruction else question
-            if (
-                self.get_token_length(prefix) + 2 + iterative_size * 2
-                > self.max_position_embeddings
-            ):
-                tokens = self.tokenizer(prefix, add_special_tokens=False).input_ids
-                prefix = self.tokenizer.decode(
-                    tokens[: self.prefix_bos_num]
-                    + tokens[
-                        len(tokens)
-                        - self.max_position_embeddings
-                        + 2
-                        + self.prefix_bos_num
-                        + 2 * iterative_size :
-                    ]
-                )
-            start = self.get_token_length(prefix) + 2
-            context = [prefix] + context
-        else:
-            start = 0
-
-        if use_token_level_filter:
-            context = self.iterative_compress_prompt(
-                context,
-                target_token,
-                iterative_size=iterative_size,
-                keep_split=keep_split,
-                start=start,
-                dynamic_ratio=dynamic_ratio,
-                condition_compare=condition_compare,
-                segments_info=segments_info,
-            )
-            compressed_prompt = (
-                self.tokenizer.batch_decode(context[0])[0]
-                .replace("<s> ", "")
-                .replace("<s>", "")
-            )
-        else:
-            if condition_flag:
-                context = context[1:]
-            compressed_prompt = "\n\n".join(context)
-
-        res = []
-        if instruction:
-            res.append(instruction)
-        if compressed_prompt.strip():
-            res.append(compressed_prompt)
-        if question and concate_question:
-            res.append(question)
-
-        compressed_prompt = "\n\n".join(res)
-
-        compressed_tokens = len(encoding.encode(compressed_prompt))
-        saving = (origin_tokens - compressed_tokens) * 0.06 / 1000
-        ratio = 1 if compressed_tokens == 0 else origin_tokens / compressed_tokens
-        rate = 1 / ratio
-        return {
-            "compressed_prompt": compressed_prompt,
-            "origin_tokens": origin_tokens,
-            "compressed_tokens": compressed_tokens,
-            "ratio": f"{ratio:.1f}x",
-            "rate": f"{rate * 100:.1f}%",
-            "saving": f", Saving ${saving:.1f} in GPT-4.",
-        }
-
     def segment_structured_context(
         self, 
         context: List[str],
