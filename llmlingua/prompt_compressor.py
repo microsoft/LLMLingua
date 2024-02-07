@@ -295,6 +295,7 @@ class PromptCompressor:
         else:
             dynamic_ratio = [0.0] * len(context)
 
+        segments_info = []
         if use_sentence_level_filter:
             context, segments_info = self.control_sentence_budget(
                 context,
@@ -312,12 +313,9 @@ class PromptCompressor:
                 context_segs_compress=context_segs_compress,
             )
         elif context_segs is not None:
-            segments_info = []
             for context_idx in range(len(context)):
                 segments_info.append([(len(seg_text), seg_ratio, seg_compress) for seg_text, seg_ratio, seg_compress in zip(context_segs[context_idx], context_segs_ratio[context_idx], context_segs_compress[context_idx])])
-            segments_info = [self.concate_segment_info(segment_info) for segment_info in segments_info]
-        else:
-            segments_info = None
+        segments_info = [self.concate_segment_info(segment_info) for segment_info in segments_info]
 
         if condition_flag:
             prefix = question + "\n\n" + instruction if add_instruction else question
@@ -900,7 +898,7 @@ class PromptCompressor:
         condition_compare: bool = False,
         segments_info: List[List[tuple]] = None,
     ):  
-        if segments_info is None:
+        if segments_info is None or segments_info == []:
             iterative_ratios = self.get_dynamic_compression_ratio(
                 context, target_token, iterative_size, dynamic_ratio, start
             )
