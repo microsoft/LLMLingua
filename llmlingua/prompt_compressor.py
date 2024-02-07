@@ -1437,8 +1437,8 @@ class PromptCompressor:
         context: List[str],
         instruction: str = "",
         question: str = "",
-        ratio: float = 2.0,
-        target_token: float = -1,
+        global_ratio: float = 2.0,
+        global_target_token: float = -1,
         iterative_size: int = 200,
         force_context_ids: List[int] = None,
         force_context_number: int = None,
@@ -1465,23 +1465,30 @@ class PromptCompressor:
 
         Each element of context should be segmented using one or more non-nested '<llmlingua></llmlingua>' tags. Each '<llmlingua>' tag 
         can include optional parameters 'ratio' and 'compress' (e.g., '<llmlingua, ratio=1.5, compress=True>'), 
-        indicating the compression ratio for that segment. Default values are 'ratio=2.0' and 'compress=True'. 
+        indicating the compression ratio for that segment. Default values are 'ratio=global_ratio' and 'compress=True'. 
         When 'compress' is set to False, it overrides the 'ratio' parameter, resulting in no compression for that segment.
 
         Args:
             context (List[str]): List of context strings divided by '<llmlingua></llmlingua>' tags with optional compression settings.
             instruction (str, optional): Additional instruction text to be included in the prompt. Default is an empty string.
             question (str, optional): A specific question that the prompt is addressing. Default is an empty string.
-            ratio (float, optional): The minimum compression ratio target to be achieved. The compression ratio is defined 
-                the same as in Wikipedia [Data compression ratio](https://en.wikipedia.org/wiki/Data_compression_ratio):
+            global_ratio (float, optional): The compression ratio is defined  the same as in Wikipedia [Data compression ratio]
+                (https://en.wikipedia.org/wiki/Data_compression_ratio):
                 .. math::\text{Compression Ratio} = \frac{\text{Uncompressed Size}}{\text{Compressed Size}}
                 Default is 2.0. The actual compression ratio generally exceeds the specified target, but there can be 
                 fluctuations due to differences in tokenizers. If specified, it should be a float greater than or equal 
-                to 1.0, representing the target compression ratio.
-            target_token (float, optional): The maximum number of tokens to be achieved. Default is -1, indicating no specific target. 
-                The actual number of tokens after compression should generally be less than the specified target_token, but there can 
-                be fluctuations due to differences in tokenizers. If specified, compression will be based on the target_token as 
-                the sole criterion, overriding the ``ratio``.
+                to 1.0, representing the target compression ratio. ``global_ratio``, is applicable only within the context-level filter 
+                and the sentence-level filter. In the token-level filter, the ratio for each segment overrides the global ratio. 
+                However, for segments where no specific ratio is defined, the global ratio serves as the default value. The final 
+                compression ratio of the entire text is a composite result of multiple compression ratios applied across different sections.
+            global_target_token (float, optional): The global maximum number of tokens to be achieved. Default is -1, indicating no 
+                specific target. The actual number of tokens after compression should generally be less than the specified target_token,
+                but there can be fluctuations due to differences in tokenizers. If specified, compression will be based on the target_token as 
+                the sole criterion, overriding the ``global_ratio``. ``global_target_token``, is applicable only within the context-level
+                filter and the sentence-level filter. In the token-level filter, the ratio for each segment overrides the global target token. 
+                However, for segments where no specific ratio is defined, the global ratio calculated from global target token serves 
+                as the default value. The final target token of the entire text is a composite result of multiple compression ratios
+                applied across different sections.
             iterative_size (int, optional): The number of tokens to consider in each iteration of compression. Default is 200.
             force_context_ids (List[int], optional): List of specific context IDs to always include in the compressed result. Default is None.
             force_context_number (int, optional): The number of context sections to forcibly include. Default is None.
@@ -1516,49 +1523,32 @@ class PromptCompressor:
             context = [" "]
         if isinstance(context, str):
             context = [context]
-        context, context_segs, context_segs_ratio, context_segs_compress = self.segment_structured_context(context)
-        
+            
         context_tokens_length = [self.get_token_length(c) for c in context]
         instruction_tokens_length, question_tokens_length = self.get_token_length(
             instruction
         ), self.get_token_length(question)
-        if target_token == -1:
-            target_token = (
+        if global_target_token == -1:
+            global_target_token = (
                 (
                     instruction_tokens_length
                     + question_tokens_length
                     + sum(context_tokens_length)
                 )
-                * (1 / ratio)
+                * (1 / global_ratio)
                 - instruction_tokens_length
                 - (question_tokens_length if concate_question else 0)
             )
-        segment_comprehensive_rate = (
-            sum(
-                sum(
-                    [
-                        self.get_token_length(seg_text) / seg_ratio
-                        for seg_text, seg_ratio, _ in zip(
-                            context_segs[context_idx], 
-                            context_segs_ratio[context_idx], 
-                            context_segs_compress[context_idx]
-                        )
-                    ]
-                )
-                for context_idx in range(len(context))
-            ) / self.get_token_length("\n\n".join(context))
-        )
-        global_compression_rate = target_token / self.get_token_length("\n\n".join(context))
-        
-        assert abs(segment_comprehensive_rate - global_compression_rate) < 0.1, \
-            f"The comprehensive compression rate of each segment, {segment_comprehensive_rate}, does not match the target compression ratio, {global_compression_rate}."
+        else:
+            global_ratio = global_target_token / sum(context_tokens_length)
 
+        context, context_segs, context_segs_ratio, context_segs_compress = self.segment_structured_context(context, global_ratio)
         return self.compress_prompt(
             context, 
             instruction, 
             question, 
-            ratio,
-            target_token, 
+            global_ratio,
+            global_target_token, 
             iterative_size, 
             force_context_ids, 
             force_context_number,
@@ -1587,6 +1577,7 @@ class PromptCompressor:
     def segment_structured_context(
         self, 
         context: List[str],
+        global_ratio: float,
         ):
         new_context, context_segs, context_segs_ratio, context_segs_compress = [], [], [], []
         for text in context:
@@ -1607,14 +1598,13 @@ class PromptCompressor:
             segs_compress = [(match[1] == 'True' if match[1] else (match[3] == 'True' if match[3] else None)) for match in matches]
             
             segs_compress = [compress if compress is not None else True for compress in segs_compress]
-            segs_ratio = [ratio if ratio else (2.0 if compress else 1.0) for ratio, compress in zip(segs_ratio, segs_compress)]
+            segs_ratio = [ratio if ratio else (global_ratio if compress else 1.0) for ratio, compress in zip(segs_ratio, segs_compress)]
             assert len(segments) == len(segs_ratio) == len(segs_compress), "The number of segments, ratios, and compress flags should be the same."
 
             new_context.append("".join(segments))
             context_segs.append(segments)
             context_segs_ratio.append(segs_ratio)
             context_segs_compress.append(segs_compress)
-
 
         return new_context, context_segs, context_segs_ratio, context_segs_compress
 
