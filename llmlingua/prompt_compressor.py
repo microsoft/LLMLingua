@@ -284,6 +284,9 @@ class PromptCompressor:
                 dynamic_context_compression_ratio=dynamic_context_compression_ratio,
                 rank_method=rank_method,
                 context_budget=context_budget,
+                context_segs=context_segs,
+                context_segs_ratio=context_segs_ratio,
+                context_segs_compress=context_segs_compress,
             )
             if context_segs is not None:
                 context_segs = [context_segs[idx] for idx in context_used]
@@ -549,9 +552,10 @@ class PromptCompressor:
         dynamic_context_compression_ratio: float = 0.0,
         rank_method: str = "longllmlingua",
         context_budget: str = "+100",
+        context_segs: List[List[str]] = None,
+        context_segs_ratio: List[List[float]] = None,
+        context_segs_compress: List[List[bool]] = None,
     ):
-        if force_context_ids is not None:
-            return [context[ii] for ii in force_context_ids], [0] * len(force_context_ids)
         demostrations_sort = self.get_rank_results(
             context,
             question,
@@ -565,6 +569,10 @@ class PromptCompressor:
         target_token = eval("target_token" + context_budget)
         res = []
         used = force_context_ids if force_context_ids is not None else []
+        if context_segs is not None:
+            for idx, _ in enumerate(context):
+                if False in context_segs_compress[idx]:
+                    used.append(idx)
 
         self.context_idxs.append([x for idx, (x, _) in enumerate(demostrations_sort)])
         for idx, _ in demostrations_sort:
@@ -733,6 +741,13 @@ class PromptCompressor:
             sentence_flags[idx] = True
             if target_token < 0:
                 break
+        
+        if context_segs is not None:
+            for idx in range(N):
+                preserved = [sen_seg_info[2] for sen_seg_info in sen2seg_ratio[idx]]
+                if False in preserved:
+                    sentence_flags[idx] = True
+
         idx = 0
         res = []
         new_segments_info = []
