@@ -39,3 +39,120 @@ In our approach, we divide the prompts into three distinct modules: instruction,
 - Question: This refers to the directives given by the user to the LLMs, such as inquiries, questions, or requests. Positioned after the instruction and context modules, the question module has a high sensitivity to compression.
 - Context: This module provides the supplementary context needed to address the question, such as documents, demonstrations, web search results, or API call results. Located between the instruction and question modules, its sensitivity to compression is relatively low.
 - Instruction: This module consists of directives given by the user to the LLMs, such as task descriptions. Placed before the instruction and context modules, the instruction module exhibits a high sensitivity to compression.
+
+## Is there a need or benefit to finetune a small model specifically for this purpose?
+
+Refer the [discussion](https://github.com/microsoft/LLMLingua/discussions/57).
+
+**TL;DR**: Fine-tuning is beneficial, but the improvement is not very significant.
+
+Our current understanding is that any Language Model can be used to estimate the importance distribution of tokens. And we believe that the higher the compression rate of the LM itself (followed "LM is a compressor"), the more accurate the estimation will be. This is particularly true in terms of the model's exposure to more tokens during the pre-training process.
+
+Therefore, we consider that any LM can potentially serve as a compressor for prompt compression, with different LMs sharing the same essential token distribution. In our previous experiments, we found that alignment might have some impact, but it is minimal – about 1-2 points. Perhaps a more refined alignment method could significantly enhance performance.
+
+## How to choose the compressor model (small language model)?
+
+Refer the [discussion](https://github.com/microsoft/LLMLingua/discussions/57), [issue](https://github.com/microsoft/LLMLingua/issues/83).
+
+Our current understanding is that any Language Model can be used to estimate the importance distribution of tokens. And we believe that the higher the compression rate of the LM itself (followed "LM is a compressor"), the more accurate the estimation will be. This is particularly true in terms of the model's exposure to more tokens during the pre-training process.
+
+Therefore, we consider that any LM can potentially serve as a compressor for prompt compression, with different LMs sharing the same essential token distribution. In our previous experiments, we found that alignment might have some impact, but it is minimal – about 1-2 points. Perhaps a more refined alignment method could significantly enhance performance.
+
+## How to use LLMLingua in web-deploy model?
+
+Refer the [issue1](https://github.com/microsoft/LLMLingua/issues/44), [issue2](https://github.com/microsoft/LLMLingua/issues/65), and [issue3](https://github.com/microsoft/LLMLingua/issues/70).
+
+We require an API that can return the logprobs of the input prompt. Currently, we have found that OpenAI and [FastChat](https://github.com/lm-sys/FastChat/pull/2612) offer this feature. We plan to support it soon.
+
+```python
+logp = openai.Completion.create(
+    model="davinci-002",
+    prompt="Please return the logprobs",
+    logprobs=0,
+    max_tokens=0,
+    echo=True,
+    temperature=0,
+)
+Out[3]:
+<OpenAIObject text_completion id=-at > JSON: {
+  "id": "",
+  "object": "text_completion",
+  "created": 1707295146,
+  "model": "davinci-002",
+  "choices": [
+    {
+      "text": "Please return the logprobs",
+      "index": 0,
+      "logprobs": {
+        "tokens": [
+          "Please",
+          " return",
+          " the",
+          " log",
+          "pro",
+          "bs"
+        ],
+        "token_logprobs": [
+          null,
+          -6.9668007,
+          -2.047512,
+          -8.885729,
+          -13.960022,
+          -5.479665
+        ],
+        "top_logprobs": null,
+        "text_offset": [
+          0,
+          6,
+          13,
+          17,
+          21,
+          24
+        ]
+      },
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 6,
+    "total_tokens": 6
+  }
+}
+```
+
+## How to reproduce the result in LLMLingua & LongLLMLingua?
+
+We release the parameter in the [issue1](https://github.com/microsoft/LLMLingua/issues/76), [issue2](https://github.com/microsoft/LLMLingua/issues/86).
+
+**LLMLingua**:
+
+```python
+prompt  = compressor.compress_prompt(  
+    context=xxx,  
+    instruction=xxx,  
+    question=xxx,  
+    ratio=0.75, 
+    iterative_size=100,  
+    context_budget="*2",  
+)
+```
+
+**LongLLMLingua**:
+
+```python
+compressed_prompt = llm_lingua.compress_prompt(
+    demonstration.split("\n"), 
+    instruction, 
+    question, 
+    0.55, 
+    use_sentence_level_filter=False, 
+    condition_in_question="after_condition", 
+    reorder_context="sort", 
+    dynamic_context_compression_ratio=0.3, # or 0.4
+    condition_compare=True, 
+    context_budget="+100", 
+    rank_method="longllmlingua",
+)
+```
+
+Experiments in LLMLingua and most experiments in LongLLMLingua were conducted in completion mode, whereas chat mode tends to be more sensitive to token-level compression. However, OpenAI has currently disabled GPT-3.5-turbo's completion; you can use GPT-3.5-turbo-instruction or Azure OpenAI service instead.
