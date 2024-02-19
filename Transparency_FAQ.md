@@ -42,7 +42,7 @@ In our approach, we divide the prompts into three distinct modules: instruction,
 
 ## Is there a need or benefit to finetune a small model specifically for this purpose?
 
-Refer the [discussion](https://github.com/microsoft/LLMLingua/discussions/57)
+Refer the [discussion](https://github.com/microsoft/LLMLingua/discussions/57).
 
 **TL;DR**: Fine-tuning is beneficial, but the improvement is not very significant.
 
@@ -119,3 +119,40 @@ Out[3]:
   }
 }
 ```
+
+## How to reproduce the result in LLMLingua & LongLLMLingua?
+
+We release the parameter in the [issue1](https://github.com/microsoft/LLMLingua/issues/76), [issue2](https://github.com/microsoft/LLMLingua/issues/86).
+
+**LLMLingua**:
+
+```python
+prompt  = compressor.compress_prompt(  
+    context=xxx,  
+    instruction=xxx,  
+    question=xxx,  
+    ratio=0.75, 
+    iterative_size=100,  
+    context_budget="*2",  
+)
+```
+
+**LongLLMLingua**:
+
+```python
+compressed_prompt = llm_lingua.compress_prompt(
+    demonstration.split("\n"), 
+    instruction, 
+    question, 
+    0.55, 
+    use_sentence_level_filter=False, 
+    condition_in_question="after_condition", 
+    reorder_context="sort", 
+    dynamic_context_compression_ratio=0.3, # or 0.4
+    condition_compare=True, 
+    context_budget="+100", 
+    rank_method="longllmlingua",
+)
+```
+
+Experiments in LLMLingua and most experiments in LongLLMLingua were conducted in completion mode, whereas chat mode tends to be more sensitive to token-level compression. However, OpenAI has currently disabled GPT-3.5-turbo's completion; you can use GPT-3.5-turbo-instruction or Azure OpenAI service instead.
