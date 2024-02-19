@@ -813,6 +813,8 @@ class PromptCompressor:
                 return_kv=True,
                 end=end if idx else None,
             )
+            if loss.shape[0] == 0:
+                break
             if past_loss is not None:
                 if end - 1 > len(past_loss):
                     past_loss = torch.cat(
