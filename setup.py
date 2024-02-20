@@ -57,8 +57,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    package_dir={"": "./"},
-    packages=find_packages("./"),
+    package_dir={"": "."},
+    packages=find_packages("."),
     extras_require={
         "dev": DEV_REQUIRES,
         "quality": QUANLITY_REQUIRES,
