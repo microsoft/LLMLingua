@@ -161,8 +161,8 @@ class PromptCompressor:
         context: List[str],
         instruction: str = "",
         question: str = "",
-        global_rate: float = 0.5,
-        global_target_token: float = -1,
+        rate: float = 0.5,
+        target_token: float = -1,
         iterative_size: int = 200,
         force_context_ids: List[int] = None,
         force_context_number: int = None,
@@ -189,27 +189,27 @@ class PromptCompressor:
 
         Each element of context should be segmented using one or more non-nested '<llmlingua></llmlingua>' tags.
         Each '<llmlingua>' tag can include optional parameters 'rate' and 'compress' (e.g., '<llmlingua, rate=0.3, compress=True>'),
-        indicating the compression rate for that segment. Default values are 'rate=global_rate' and 'compress=True'.
+        indicating the compression rate for that segment. Default values are 'rate=rate' and 'compress=True'.
         When 'compress' is set to False, it overrides the 'rate' parameter, resulting in no compression for that segment.
 
         Args:
             context (List[str]): List of context strings divided by '<llmlingua></llmlingua>' tags with optional compression settings.
             instruction (str, optional): Additional instruction text to be included in the prompt. Default is an empty string.
             question (str, optional): A specific question that the prompt is addressing. Default is an empty string.
-            global_rate (float, optional): The compression rate is defined the same as in paper "Language Modeling Is Compression".
+            rate (float, optional): The compression rate is defined the same as in paper "Language Modeling Is Compression".
                 Delétang, Grégoire, Anian Ruoss, Paul-Ambroise Duquenne, Elliot Catt, Tim Genewein, Christopher Mattern,
                 Jordi Grau-Moya et al. "Language modeling is compression." arXiv preprint arXiv:2309.10668 (2023):
                 .. math::\text{Compression Rate} = \frac{\text{Compressed Size}}{\text{Raw Size}}
                 Default is 0.5. The actual compression rate is generally lower than the specified target, but there can be
                 fluctuations due to differences in tokenizers. If specified, it should be a float less than or equal
-                to 1.0, representing the target compression rate. ``global_rate``, is applicable only within the context-level filter
+                to 1.0, representing the target compression rate. ``rate``, is applicable only within the context-level filter
                 and the sentence-level filter. In the token-level filter, the rate for each segment overrides the global rate.
                 However, for segments where no specific rate is defined, the global rate serves as the default value. The final
                 compression rate of the entire text is a composite result of multiple compression rates applied across different sections.
-            global_target_token (float, optional): The global maximum number of tokens to be achieved. Default is -1, indicating no
+            target_token (float, optional): The global maximum number of tokens to be achieved. Default is -1, indicating no
                 specific target. The actual number of tokens after compression should generally be less than the specified target_token,
                 but there can be fluctuations due to differences in tokenizers. If specified, compression will be based on the target_token as
-                the sole criterion, overriding the ``global_rate``. ``global_target_token``, is applicable only within the context-level
+                the sole criterion, overriding the ``rate``. ``target_token``, is applicable only within the context-level
                 filter and the sentence-level filter. In the token-level filter, the rate for each segment overrides the global target token.
                 However, for segments where no specific rate is defined, the global rate calculated from global target token serves
                 as the default value. The final target token of the entire text is a composite result of multiple compression rates
@@ -253,28 +253,28 @@ class PromptCompressor:
         instruction_tokens_length, question_tokens_length = self.get_token_length(
             instruction
         ), self.get_token_length(question)
-        if global_target_token == -1:
-            global_target_token = (
+        if target_token == -1:
+            target_token = (
                 (
                     instruction_tokens_length
                     + question_tokens_length
                     + sum(context_tokens_length)
                 )
-                * global_rate
+                * rate
                 - instruction_tokens_length
                 - (question_tokens_length if concate_question else 0)
             )
         else:
-            global_rate = global_target_token / sum(context_tokens_length)
+            rate = target_token / sum(context_tokens_length)
         context, context_segs, context_segs_rate, context_segs_compress = (
-            self.segment_structured_context(context, global_rate)
+            self.segment_structured_context(context, rate)
         )
         return self.compress_prompt(
             context,
             instruction,
             question,
-            global_rate,
-            global_target_token,
+            rate,
+            target_token,
             iterative_size,
             force_context_ids,
             force_context_number,
