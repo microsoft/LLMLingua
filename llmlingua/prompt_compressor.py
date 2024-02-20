@@ -266,9 +266,12 @@ class PromptCompressor:
             )
         else:
             rate = target_token / sum(context_tokens_length)
-        context, context_segs, context_segs_rate, context_segs_compress = (
-            self.segment_structured_context(context, rate)
-        )
+        (
+            context,
+            context_segs,
+            context_segs_rate,
+            context_segs_compress,
+        ) = self.segment_structured_context(context, rate)
         return self.compress_prompt(
             context,
             instruction,
