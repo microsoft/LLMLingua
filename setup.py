@@ -33,6 +33,9 @@ QUANLITY_REQUIRES = [
     "black==21.4b0",
     "flake8>=3.8.3",
     "isort>=5.5.4",
+    "pre-commit",
+    "pytest",
+    "pytest-xdist",
 ]
 DEV_REQUIRES = INSTALL_REQUIRES + QUANLITY_REQUIRES
 
