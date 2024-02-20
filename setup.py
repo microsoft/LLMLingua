@@ -24,6 +24,7 @@ with open("llmlingua/version.py", "r") as version_file:
 
 INSTALL_REQUIRES = [
     "transformers>=4.26.0",
+    "accelerate",
     "torch",
     "tiktoken",
     "nltk",
@@ -45,7 +46,7 @@ setup(
     author="The LLMLingua team",
     author_email="hjiang@microsoft.com",
     description="To speed up LLMs' inference and enhance LLM's perceive of key information, compress the prompt and KV-Cache, which achieves up to 20x compression with minimal performance loss.",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="utf8").read(),
     long_description_content_type="text/markdown",
     keywords="Prompt Compression, LLMs, Inference Acceleration, Black-box LLMs, Efficient LLMs",
     license="MIT License",
