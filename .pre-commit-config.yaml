@@ -1,0 +1,51 @@
+default_language_version:
+  python: python3
+exclude: 'dotnet'
+ci:
+  autofix_prs: true
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
+  autoupdate_schedule: 'quarterly'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    - id: check-added-large-files
+    - id: check-ast
+    - id: check-yaml
+    - id: check-toml
+    - id: check-json
+    - id: check-byte-order-marker
+      exclude: .gitignore
+    - id: check-merge-conflict
+    - id: detect-private-key
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
+    - id: no-commit-to-branch
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+    - id: black
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.261
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        args: ["-L", "ans,linar,nam,"]
+        exclude: |
+            (?x)^(
+              pyproject.toml |
+              website/static/img/ag.svg |
+              website/yarn.lock |
+              notebook/.*
+            )$
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.7.1
+    hooks:
+      - id: nbqa-ruff
+        args: ["--fix"]
+      - id: nbqa-black
