@@ -12,7 +12,7 @@ import torch
 import nltk
 import tiktoken
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
-
+import re
 
 encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
@@ -1291,7 +1291,7 @@ class PromptCompressor:
                 else:
                     threshold = self.get_estimate_threshold_base_distribution(
                         loss, ratio, False
-                    )
+                            )
 
                 (
                     compressed_input_ids,
