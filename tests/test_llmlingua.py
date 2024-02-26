@@ -54,6 +54,8 @@ class LLMLinguaTester(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(LLMLinguaTester, self).__init__(*args, **kwargs)
+        import nltk
+        nltk.download('punkt')
         self.llmlingua = PromptCompressor("lgaalves/gpt2-dolly", device_map="cpu")
 
     def test_general_compress_prompt(self):
