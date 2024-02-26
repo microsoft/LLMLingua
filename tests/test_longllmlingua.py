@@ -106,13 +106,16 @@ class LongLLMLinguaTester(unittest.TestCase):
     def test_general_structured_compress_prompt(self):
         # Single Stuctured Context
         import json
-        context, _, _, _ = self.llmlingua.segment_structured_context([self.JSON_PROMPT], 0.5)
-        origin_json_data = json.loads(context[0])
+
+        context, _, _, _ = self.llmlingua.segment_structured_context(
+            [self.JSON_PROMPT], 0.5
+        )
+        _ = json.loads(context[0])
         compressed_prompt = self.llmlingua.structured_compress_prompt(
             [self.JSON_PROMPT],
             question=self.STRUCTURED_QUESTION,
             target_token=150,
-            use_sentence_level_filter = False,
+            use_sentence_level_filter=False,
             condition_in_question="after_condition",
             reorder_context="sort",
             dynamic_context_compression_ratio=0.4,
@@ -121,7 +124,7 @@ class LongLLMLinguaTester(unittest.TestCase):
             rank_method="longllmlingua",
             concate_question=False,
         )
-        compressed_json_data = json.loads(compressed_prompt["compressed_prompt"])
+        _ = json.loads(compressed_prompt["compressed_prompt"])
         self.assertEqual(
             compressed_prompt["compressed_prompt"],
             self.JSON_COMPRESSED_PROMPT,
@@ -130,13 +133,13 @@ class LongLLMLinguaTester(unittest.TestCase):
         self.assertEqual(compressed_prompt["compressed_tokens"], 205)
         self.assertEqual(compressed_prompt["ratio"], "1.6x")
         self.assertEqual(compressed_prompt["rate"], "62.3%")
-        
+
         # Multiple Stuctured Context
         compressed_prompt = self.llmlingua.structured_compress_prompt(
             [self.JSON_PROMPT, self.MEETINGBANK_TRANSCRIPT_0_PROMPT],
             question=self.STRUCTURED_QUESTION,
             target_token=650,
-            use_sentence_level_filter = False,
+            use_sentence_level_filter=False,
             condition_in_question="after_condition",
             reorder_context="sort",
             dynamic_context_compression_ratio=0.4,

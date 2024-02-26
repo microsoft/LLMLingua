@@ -86,12 +86,18 @@ class LLMLinguaTester(unittest.TestCase):
     def test_general_structured_compress_prompt(self):
         # Single Stuctured Context
         import json
-        context, _, _, _ = self.llmlingua.segment_structured_context([self.JSON_PROMPT], 0.5)
-        origin_json_data = json.loads(context[0])
-        compressed_prompt = self.llmlingua.structured_compress_prompt(
-            [self.JSON_PROMPT], rate=0.5, use_sentence_level_filter=True, use_token_level_filter=True
+
+        context, _, _, _ = self.llmlingua.segment_structured_context(
+            [self.JSON_PROMPT], 0.5
         )
-        compressed_json_data = json.loads(compressed_prompt["compressed_prompt"])
+        _ = json.loads(context[0])
+        compressed_prompt = self.llmlingua.structured_compress_prompt(
+            [self.JSON_PROMPT],
+            rate=0.5,
+            use_sentence_level_filter=True,
+            use_token_level_filter=True,
+        )
+        _ = json.loads(compressed_prompt["compressed_prompt"])
         self.assertEqual(
             compressed_prompt["compressed_prompt"],
             self.JSON_COMPRESSED_PROMPT,
@@ -100,10 +106,13 @@ class LLMLinguaTester(unittest.TestCase):
         self.assertEqual(compressed_prompt["compressed_tokens"], 225)
         self.assertEqual(compressed_prompt["ratio"], "1.4x")
         self.assertEqual(compressed_prompt["rate"], "70.8%")
-        
+
         # Multiple Stuctured Context
         compressed_prompt = self.llmlingua.structured_compress_prompt(
-            [self.JSON_PROMPT, self.MEETINGBANK_TRANSCRIPT_0_PROMPT], rate=0.5, use_sentence_level_filter=False, use_token_level_filter=True
+            [self.JSON_PROMPT, self.MEETINGBANK_TRANSCRIPT_0_PROMPT],
+            rate=0.5,
+            use_sentence_level_filter=False,
+            use_token_level_filter=True,
         )
         self.assertEqual(
             compressed_prompt["compressed_prompt"],

@@ -248,7 +248,10 @@ class PromptCompressor:
             context = [" "]
         if isinstance(context, str):
             context = [context]
-        context = [self.tokenizer.decode(self.tokenizer(c, add_special_tokens=False).input_ids) for c in context]
+        context = [
+            self.tokenizer.decode(self.tokenizer(c, add_special_tokens=False).input_ids)
+            for c in context
+        ]
         context_tokens_length = [self.get_token_length(c) for c in context]
         instruction_tokens_length, question_tokens_length = self.get_token_length(
             instruction
@@ -558,7 +561,9 @@ class PromptCompressor:
 
     def get_prefix_length(self, prefix: str, text: str):
         possible_prefix_token = max(self.get_token_length(prefix, False) - 3, 1)
-        full_input_ids = self.tokenizer(prefix + text[:100], add_special_tokens=False).input_ids
+        full_input_ids = self.tokenizer(
+            prefix + text[:100], add_special_tokens=False
+        ).input_ids
         for i in range(possible_prefix_token, len(full_input_ids)):
             cur_prefix = self.tokenizer.decode(full_input_ids[:i])
             if cur_prefix == prefix:
@@ -668,8 +673,10 @@ class PromptCompressor:
         origin_text = "\n\n".join(pure_context)
         assert len("".join(segments)) == len(origin_text)
         assert len(segments) == len(global_dynamic_rate) == len(global_dynamic_compress)
-        
-        text_input_ids = self.tokenizer("\n\n".join(context), add_special_tokens=False).input_ids[start:]
+
+        text_input_ids = self.tokenizer(
+            "\n\n".join(context), add_special_tokens=False
+        ).input_ids[start:]
         assert self.tokenizer.decode(text_input_ids) == origin_text
         dynamic_compression_ratio = self.token_segment(
             text_input_ids,
