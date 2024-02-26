@@ -12,7 +12,7 @@ defaults:
 permissions: {}
 
 jobs:
-  UniTest:
+  UnitTest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -37,5 +37,7 @@ jobs:
 
       - name: Run core tests
         shell: bash
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN}}
         run: |
           make test
