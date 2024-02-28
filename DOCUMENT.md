@@ -171,6 +171,30 @@ from llmlingua import PromptCompressor
 llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"revision": "main"})
 ```
 
+### Integration with LangChain
+
+Thanks to the contributions of Ayo Ayibiowu (@thehapyone), (Long)LLMLingua can be seamlessly integrated into LangChain. Here's an example of how to initialize (Long)LLMLingua within LangChain:
+
+```python
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain_community.retrievers.document_compressors import LLMLinguaCompressor
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(temperature=0)
+
+compressor = LLMLinguaCompressor(model_name="openai-community/gpt2", device_map="cpu")
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor, base_retriever=retriever
+)
+
+compressed_docs = compression_retriever.get_relevant_documents(
+    "What did the president say about Ketanji Jackson Brown"
+)
+pretty_print_docs(compressed_docs)
+```
+
+For a more detailed guide, please refer to [Notebook](https://github.com/langchain-ai/langchain/blob/master/docs/docs/integrations/retrievers/llmlingua.ipynb).
+
 ### Integration with LlamaIndex
 
 Thanks to the contributions of Jerry Liu (@jerryjliu), (Long)LLMLingua can be seamlessly integrated into LlamaIndex. Here's an example of how to initialize (Long)LLMLingua within LlamaIndex:

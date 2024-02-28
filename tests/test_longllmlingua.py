@@ -60,9 +60,10 @@ class LongLLMLinguaTester(unittest.TestCase):
         super(LongLLMLinguaTester, self).__init__(*args, **kwargs)
         try:
             import nltk
-            nltk.download('punkt')
+
+            nltk.download("punkt")
         except:
-            print('nltk_data exits.')
+            print("nltk_data exits.")
         self.llmlingua = PromptCompressor("lgaalves/gpt2-dolly", device_map="cpu")
 
     def test_general_compress_prompt(self):

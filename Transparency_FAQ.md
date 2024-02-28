@@ -127,13 +127,13 @@ We release the parameter in the [issue1](https://github.com/microsoft/LLMLingua/
 **LLMLingua**:
 
 ```python
-prompt  = compressor.compress_prompt(  
-    context=xxx,  
-    instruction=xxx,  
-    question=xxx,  
-    ratio=0.75, 
-    iterative_size=100,  
-    context_budget="*2",  
+prompt  = compressor.compress_prompt(
+    context=xxx,
+    instruction=xxx,
+    question=xxx,
+    ratio=0.75,
+    iterative_size=100,
+    context_budget="*2",
 )
 ```
 
@@ -141,18 +141,70 @@ prompt  = compressor.compress_prompt(
 
 ```python
 compressed_prompt = llm_lingua.compress_prompt(
-    demonstration.split("\n"), 
-    instruction, 
-    question, 
-    0.55, 
-    use_sentence_level_filter=False, 
-    condition_in_question="after_condition", 
-    reorder_context="sort", 
+    demonstration.split("\n"),
+    instruction,
+    question,
+    0.55,
+    use_sentence_level_filter=False,
+    condition_in_question="after_condition",
+    reorder_context="sort",
     dynamic_context_compression_ratio=0.3, # or 0.4
-    condition_compare=True, 
-    context_budget="+100", 
+    condition_compare=True,
+    context_budget="+100",
     rank_method="longllmlingua",
 )
 ```
 
 Experiments in LLMLingua and most experiments in LongLLMLingua were conducted in completion mode, whereas chat mode tends to be more sensitive to token-level compression. However, OpenAI has currently disabled GPT-3.5-turbo's completion; you can use GPT-3.5-turbo-instruction or Azure OpenAI service instead.
+
+
+## How to use LLMLingua in LangChain and LlamaIndex?
+
+### Integration with LangChain
+
+Thanks to the contributions of Ayo Ayibiowu (@thehapyone), (Long)LLMLingua can be seamlessly integrated into LangChain. Here's an example of how to initialize (Long)LLMLingua within LangChain:
+
+```python
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain_community.retrievers.document_compressors import LLMLinguaCompressor
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(temperature=0)
+
+compressor = LLMLinguaCompressor(model_name="openai-community/gpt2", device_map="cpu")
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor, base_retriever=retriever
+)
+
+compressed_docs = compression_retriever.get_relevant_documents(
+    "What did the president say about Ketanji Jackson Brown"
+)
+pretty_print_docs(compressed_docs)
+```
+
+For a more detailed guide, please refer to [Notebook](https://github.com/langchain-ai/langchain/blob/master/docs/docs/integrations/retrievers/llmlingua.ipynb).
+
+### Integration with LlamaIndex
+
+Thanks to the contributions of Jerry Liu (@jerryjliu), (Long)LLMLingua can be seamlessly integrated into LlamaIndex. Here's an example of how to initialize (Long)LLMLingua within LlamaIndex:
+
+```python
+from llama_index.query_engine import RetrieverQueryEngine
+from llama_index.response_synthesizers import CompactAndRefine
+from llama_index.indices.postprocessor import LongLLMLinguaPostprocessor
+
+node_postprocessor = LongLLMLinguaPostprocessor(
+    instruction_str="Given the context, please answer the final question",
+    target_token=300,
+    rank_method="longllmlingua",
+    additional_compress_kwargs={
+        "condition_compare": True,
+        "condition_in_question": "after",
+        "context_budget": "+100",
+        "reorder_context": "sort",  # Enables document reordering
+        "dynamic_context_compression_ratio": 0.4, # Enables dynamic compression ratio
+    },
+)
+```
+
+For a more detailed guide, please refer to [RAGLlamaIndex Example](https://github.com/microsoft/LLMLingua/blob/main/examples/RAGLlamaIndex.ipynb).
