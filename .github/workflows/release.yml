@@ -1,0 +1,46 @@
+ # This workflows will build and upload a Python Package using Twine when a release is published
+# Conda-forge bot will pick up new PyPI version and automatically create new version
+# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+
+name: release
+run-name: Release LLMLingua by @${{ github.actor }}
+
+on:
+  release:
+    types: [published]
+permissions: {}
+
+jobs:
+  deploy:
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+        python-version: [3.10]
+    runs-on: ${{ matrix.os }}
+    environment:
+      name: pypi
+      url: https://pypi.org/project/llmlingua/
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install from source
+        # This is required for the pre-commit tests
+        shell: pwsh
+        run: pip install .
+
+      - name: Build
+        shell: pwsh
+        run: |
+          pip install twine
+          python setup.py sdist bdist_wheel
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true

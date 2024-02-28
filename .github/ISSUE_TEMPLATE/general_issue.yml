@@ -1,0 +1,12 @@
+name: "\U0001F31F General Question"
+description: File a general question
+title: "[Question]: "
+labels: ["question"]
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the issue
+      description: A clear and concise description of what the question is.
+      placeholder: The detail of question.

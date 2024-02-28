@@ -1,6 +1,6 @@
 # Copyright (c) 2023 Microsoft
 # Licensed under The MIT License [see LICENSE for details]
- 
+
 _MAJOR = "0"
 _MINOR = "1"
 # On master and in a nightly release the patch should be one ahead of the last

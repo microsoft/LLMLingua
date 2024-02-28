@@ -1,0 +1,43 @@
+name: Unit Test
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:  # Trigger the workflow on pull request or merge
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+
+defaults:
+  run:
+    shell: bash
+permissions: {}
+
+jobs:
+  UnitTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest pytest-xdist
+
+      - name: Install packages
+        run: |
+          pip install -e .
+
+      - name: Run core tests
+        shell: bash
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN}}
+        run: |
+          make test

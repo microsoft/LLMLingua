@@ -145,7 +145,7 @@ recovered_response = llm_lingua.recover(
 
 ### Using phi-2
 
-Thanks to the efforts of the community, phi-2 is now available for use in LLMLingua. 
+Thanks to the efforts of the community, phi-2 is now available for use in LLMLingua.
 
 Before using it, please update your transformers to the GitHub version by running `pip install -U git+https://github.com/huggingface/transformers.git`.
 

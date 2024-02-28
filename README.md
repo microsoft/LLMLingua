@@ -1,16 +1,16 @@
-<div style="display: flex; align-items: center;">  
-    <div style="width: 100px; margin-right: 10px; height:auto;" align="left">  
-        <img src="images/LLMLingua_logo.png" alt="LLMLingua" width="100" align="left">  
-    </div>  
-    <div style="flex-grow: 1;" align="center">  
-        <h2 align="center">(Long)LLMLingua: Enhancing Large Language Model Inference via Prompt Compression</h2>  
-    </div>  
+<div style="display: flex; align-items: center;">
+    <div style="width: 100px; margin-right: 10px; height:auto;" align="left">
+        <img src="images/LLMLingua_logo.png" alt="LLMLingua" width="100" align="left">
+    </div>
+    <div style="flex-grow: 1;" align="center">
+        <h2 align="center">(Long)LLMLingua: Enhancing Large Language Model Inference via Prompt Compression</h2>
+    </div>
 </div>
 
 <p align="center">
-    | <a href="https://llmlingua.com/"><b>Project Page</b></a> | 
-    <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> | 
-    <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua Paper</b></a> | 
+    | <a href="https://llmlingua.com/"><b>Project Page</b></a> |
+    <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> |
+    <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua Paper</b></a> |
     <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
 </p>
 
@@ -102,7 +102,7 @@ To get started with (Long)LLMLingua, simply install it using pip:
 ```bash
 pip install llmlingua
 ```
-    
+
 #### 2. **Using (Long)LLMLingua for Prompt Compression:**
 
 With (Long)LLMLingua, you can easily compress your prompts. Here’s how you can do it:
@@ -152,8 +152,8 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
+trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
