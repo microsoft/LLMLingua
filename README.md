@@ -128,7 +128,31 @@ llm_lingua = PromptCompressor("microsoft/phi-2")
 llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"revision": "main"})
 ```
 
-#### 3. **Learning More:**
+#### 3. **Using (Long)LLMLingua for Structured Prompt Compression:**
+
+You can split the text into different sections and define whether a section should be compressed and the rate of compression to apply.
+When using this method, each element of context should be segmented using one or more non-nested `<llmlingua></llmlingua>` tags. Each `<llmlingua>` tag can include optional parameters `rate` and `compress` (e.g., `<llmlingua, rate=0.3, compress=True>`), indicating the compression strategy for that segment.
+
+```python
+from llmlingua import PromptCompressor
+
+llm_lingua = PromptCompressor()
+structured_prompt = """<llmlingua, compress=False>Speaker 4:</llmlingua><llmlingua, rate=0.4> Thank you. And can we do the functions for content? Items I believe are 11, three, 14, 16 and 28, I believe.</llmlingua><llmlingua, compress=False>
+Speaker 0:</llmlingua><llmlingua, rate=0.4> Item 11 is a communication from Council on Price recommendation to increase appropriation in the general fund group in the City Manager Department by $200 to provide a contribution to the Friends of the Long Beach Public Library. Item 12 is communication from Councilman Super Now. Recommendation to increase appropriation in the special advertising and promotion fund group and the city manager's department by $10,000 to provide support for the end of summer celebration. Item 13 is a communication from Councilman Austin. Recommendation to increase appropriation in the general fund group in the city manager department by $500 to provide a donation to the Jazz Angels . Item 14 is a communication from Councilman Austin. Recommendation to increase appropriation in the general fund group in the City Manager department by $300 to provide a donation to the Little Lion Foundation. Item 16 is a communication from Councilman Allen recommendation to increase appropriation in the general fund group in the city manager department by $1,020 to provide contribution to Casa Korero, Sew Feria Business Association, Friends of Long Beach Public Library and Dave Van Patten. Item 28 is a communication. Communication from Vice Mayor Richardson and Council Member Muranga. Recommendation to increase appropriation in the general fund group in the City Manager Department by $1,000 to provide a donation to Ron Palmer Summit. Basketball and Academic Camp.</llmlingua><llmlingua, compress=False>
+Speaker 4:</llmlingua><llmlingua, rate=0.6> We have a promotion and a second time as councilman served Councilman Ringa and customers and they have any comments.</llmlingua><llmlingua, compress=False>
+Speaker 2:</llmlingua><llmlingua, rate=0.6> Now. I had queued up to motion, but.</llmlingua><llmlingua, compress=False>
+Speaker 4:</llmlingua><llmlingua, rate=0.6> Great that we have any public comment on this.</llmlingua>"""
+compressed_prompt = llm_lingua.structured_compress_prompt(structured_prompt, instruction="", question="", rate=0.5)
+print(compressed_prompt['compressed_prompt'])
+
+# > Speaker 4:. And can we do the functions for content? Items I believe are11,116 28,.
+# Speaker 0:1 is a from Council on Price recommendation to increaseation the fund group the City Manager Department $20 to provide a the the.1 is Councilman Super Now. the specialising and group the manager provide the of summerman manager $ a the Jazzels a communicationman. increase the group a the Little.1man Allen0 provide to Casa Kor, Sewia, of and Dave Van communication. from Mayor Council Member Mur to Ronmer. Basketball andic
+# Speaker 4: a a second time asman servedman Ring and and have
+# Speaker 2: Now. I had queued up to motion, but.
+# Speaker 4: Great that we have any public comment on this.
+```
+
+#### 4. **Learning More:**
 
 To understand how to apply LLMLingua and LongLLMLingua in real-world scenarios like RAG, Online Meetings, CoT, and Code, please refer to our [**examples**](./examples). For detailed guidance, the [**documentation**](./DOCUMENT.md) provides extensive recommendations on effectively utilizing LLMLingua.
 
