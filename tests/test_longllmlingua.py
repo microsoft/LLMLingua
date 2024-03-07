@@ -37,17 +37,17 @@ class LongLLMLinguaTester(unittest.TestCase):
         "id": "765",
         "name": " Doe",
         "isActive": "true",
-        "biography": "John York is a software years experience in the. MIT with degree Science and has worked with several Fortune companies He developing solutions and projects is and speaker tech conferences emerging business world. In his time, enjoys, reading, playing.",
+        "biography": "John York is a software years experience in the. MIT with degree Science and has worked with several Fortune companies He developing solutions and projects is and speaker tech conferences emerging business world. ",
         "employmentHistory": [
             {
             "company": "TechCorp",
             "role": "",
-            "description": " Tech, was leading software engineers overseeing web played key the cloud technologies within the company, significantly enhancing their digital."
+            "description": " Tech, was leading software engineers overseeing web played key the cloud technologies within the company, significantly enhancing their digital operations."
             },
             {
             "company": "Innovatech",
             "role": "",
-            "description": " role developingedge AI implementing machine learning solutions for various business applications. He was instrumental in developing a predictive analytics tool that transformed the company's approach to data-driven decision making."
+            "description": " his role developingedge AI implementing learning for He was developing a analytics tool transformed the company's approach to data-driven decision making."
             }
         ],
         "skills": "Java, Python, Machine Learning, Cloud Computing, AI Development"
@@ -121,7 +121,7 @@ class LongLLMLinguaTester(unittest.TestCase):
             [self.JSON_PROMPT],
             question=self.STRUCTURED_QUESTION,
             target_token=150,
-            use_sentence_level_filter=False,
+            use_sentence_level_filter=True,
             condition_in_question="after_condition",
             reorder_context="sort",
             dynamic_context_compression_ratio=0.4,
@@ -136,9 +136,9 @@ class LongLLMLinguaTester(unittest.TestCase):
             self.JSON_COMPRESSED_PROMPT,
         )
         self.assertEqual(compressed_prompt["origin_tokens"], 329)
-        self.assertEqual(compressed_prompt["compressed_tokens"], 205)
-        self.assertEqual(compressed_prompt["ratio"], "1.6x")
-        self.assertEqual(compressed_prompt["rate"], "62.3%")
+        self.assertEqual(compressed_prompt["compressed_tokens"], 188)
+        self.assertEqual(compressed_prompt["ratio"], "1.8x")
+        self.assertEqual(compressed_prompt["rate"], "57.1%")
 
         # Multiple Stuctured Context
         compressed_prompt = self.llmlingua.structured_compress_prompt(

@@ -36,16 +36,18 @@ class LLMLinguaTester(unittest.TestCase):
         "id": "987654",
         "name": "John Doe",
         "isActive": "true",
-        "biography": " Doe, born in York in 1985 a renowned engineer with over the field.John from MIT and has since worked with several.He has a for developing innovative solutions and has to numerous projectsJohn is also avid and speaker at conferences, his on and their the business.In his enjoys, reading fiction and playing piano.",
+        "biography": " Doe, born in York in 1985 a renowned engineer with over in the field. John from MIT a Science and has since worked with several He has a for developing innovative solutions and has to numerous projects John is also avid and speaker at conferences, his on technologies and their the business. In his enjoys, reading fiction and playing piano.",
         "employmentHistory": [
             {
             "company": "TechCorp",
-            "role": "Senior",
-            "description": " John was for leading of engineers and of scalable.He in the of cloud technologies, significantly the of their digital operations."},
+            "role": "Senior Engineer",
+            "description": " John was for leading of engineers and of scalable He in the of cloud technologies company, significantly the of their digital operations."
+            },
             {
             "company": "Innovatech",
             "role": "Lead",
-            "description": "In his John on developingedge AI and implementing learning solutions for various was in developing a predictive analytics tool that transformed the company's approach to data-driven decision making."}
+            "description": "In his John on developingedge AI and implementing machine learning solutions for various business applications. He was instrumental in developing a predictive analytics tool that transformed the company's approach to data-driven decision making."
+            }
         ],
         "skills": "Java, Python, Machine Learning, Cloud Computing, AI Development"
     }"""
@@ -109,9 +111,9 @@ class LLMLinguaTester(unittest.TestCase):
             self.JSON_COMPRESSED_PROMPT,
         )
         self.assertEqual(compressed_prompt["origin_tokens"], 318)
-        self.assertEqual(compressed_prompt["compressed_tokens"], 225)
-        self.assertEqual(compressed_prompt["ratio"], "1.4x")
-        self.assertEqual(compressed_prompt["rate"], "70.8%")
+        self.assertEqual(compressed_prompt["compressed_tokens"], 241)
+        self.assertEqual(compressed_prompt["ratio"], "1.3x")
+        self.assertEqual(compressed_prompt["rate"], "75.8%")
 
         # Multiple Stuctured Context
         compressed_prompt = self.llmlingua.structured_compress_prompt(
