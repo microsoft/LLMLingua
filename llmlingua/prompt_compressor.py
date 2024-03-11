@@ -901,7 +901,10 @@ class PromptCompressor:
         N = len(context_sentences)
         flags = list(range(len(context_sentences)))
         if len(sentence_tokens_length) == 1:
-            return context
+            segments_info = []
+            if context_segs is not None:
+                segments_info.append(sen2seg_ratio[0])
+            return context, segments_info
         if rank_method == "longllmlingua":
             sentence_ppl = [
                 self.get_condition_ppl(sentence, question, condition_in_question)
@@ -967,11 +970,6 @@ class PromptCompressor:
                         segment_ratio.extend(sen2seg_ratio[idx + ii])
                 new_segments_info.append(segment_ratio)
             idx += len(s)
-        if context_segs is not None:
-            new_segments_info = [
-                self.concate_segment_info(segment_info)
-                for segment_info in new_segments_info
-            ]
         return res, new_segments_info
 
     def get_compressed_input(
