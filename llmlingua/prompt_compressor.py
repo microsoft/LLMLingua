@@ -835,34 +835,23 @@ class PromptCompressor:
             for idx in idxs:
                 sentence_ppl[idx] += high_priority_bonus
 
-        def sync_sentence(segments, text):
-            seg_num = len(segments)
-            new_segments = []
-            text_seen = 0
-            seg_idx, cur_seg_seen = 0, 0
-            for i, s in enumerate(text):
-                while seg_idx < seg_num and s != segments[seg_idx][cur_seg_seen]:
-                    if cur_seg_seen < len(segments[seg_idx]) - 1:
-                        cur_seg_seen += 1
-                        continue
-                    new_segments.append(text[text_seen:i])
-                    text_seen = i
-                    seg_idx += 1
-                    cur_seg_seen = 0
-                cur_seg_seen += 1
-                if seg_idx == seg_num:
+        def sync_sentence(sentences, text):
+            seen_text = 0
+            sentence_num = len(sentences)
+            new_sentences = []
+            for i, s in enumerate(sentences):
+                assert s == text[seen_text: seen_text + len(s)]
+                if i == sentence_num - 1:
+                    new_sentences.append(text[seen_text:])
                     break
-                if cur_seg_seen == len(segments[seg_idx]):
-                    new_segments.append(text[text_seen : i + 1])
-                    text_seen = i + 1
-                    seg_idx += 1
-                    cur_seg_seen = 0
-            if text_seen < len(text):
-                new_segments.append(text[text_seen:])
-            assert len("".join(new_segments)) == len(text)
-            return new_segments
+                next_sentence_start = text.find(sentences[i + 1][:5], seen_text + len(s))
+                new_sentences.append(text[seen_text: next_sentence_start])
+                seen_text = next_sentence_start
+            assert "".join(new_sentences) == text
+            return new_sentences
 
         sentences = [nltk.sent_tokenize(c) for c in context]
+        sentences = [sync_sentence(s, c) for s, c in zip(sentences, context)]
         dem_g, s2de, idx = defaultdict(set), defaultdict(int), 0
         for idx_d, s in enumerate(sentences):
             for _ in s:
@@ -871,9 +860,6 @@ class PromptCompressor:
                 idx += 1
 
         if context_segs is not None:
-            context_segs = [
-                sync_sentence(s, "".join(c)) for s, c in zip(context_segs, sentences)
-            ]
             sen2seg_ratio = {}
             idx = 0
             for idx_d, sentences_each_context in enumerate(sentences):
@@ -915,7 +901,10 @@ class PromptCompressor:
         N = len(context_sentences)
         flags = list(range(len(context_sentences)))
         if len(sentence_tokens_length) == 1:
-            return context
+            segments_info = []
+            if context_segs is not None:
+                segments_info.append(sen2seg_ratio[0])
+            return context, segments_info
         if rank_method == "longllmlingua":
             sentence_ppl = [
                 self.get_condition_ppl(sentence, question, condition_in_question)
@@ -981,11 +970,6 @@ class PromptCompressor:
                         segment_ratio.extend(sen2seg_ratio[idx + ii])
                 new_segments_info.append(segment_ratio)
             idx += len(s)
-        if context_segs is not None:
-            new_segments_info = [
-                self.concate_segment_info(segment_info)
-                for segment_info in new_segments_info
-            ]
         return res, new_segments_info
 
     def get_compressed_input(
