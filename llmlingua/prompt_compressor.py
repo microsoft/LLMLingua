@@ -840,12 +840,14 @@ class PromptCompressor:
             sentence_num = len(sentences)
             new_sentences = []
             for i, s in enumerate(sentences):
-                assert s == text[seen_text: seen_text + len(s)]
+                assert s == text[seen_text : seen_text + len(s)]
                 if i == sentence_num - 1:
                     new_sentences.append(text[seen_text:])
                     break
-                next_sentence_start = text.find(sentences[i + 1][:5], seen_text + len(s))
-                new_sentences.append(text[seen_text: next_sentence_start])
+                next_sentence_start = text.find(
+                    sentences[i + 1][:5], seen_text + len(s)
+                )
+                new_sentences.append(text[seen_text:next_sentence_start])
                 seen_text = next_sentence_start
             assert "".join(new_sentences) == text
             return new_sentences
