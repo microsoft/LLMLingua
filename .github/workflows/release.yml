@@ -38,7 +38,7 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          pip install twine
+          pip install twine wheel
           python setup.py sdist bdist_wheel
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
