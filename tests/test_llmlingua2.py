@@ -42,6 +42,7 @@ class LLMLingua2Tester(unittest.TestCase):
         super(LLMLingua2Tester, self).__init__(*args, **kwargs)
         self.llmlingua = PromptCompressor(
             model_name="microsoft/llmlingua-2-xlm-roberta-large-meetingbank",
+            device_map="cpu",
             use_llmlingua2=True,
         )
 
