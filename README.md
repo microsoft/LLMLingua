@@ -3,21 +3,24 @@
         <img src="images/LLMLingua_logo.png" alt="LLMLingua" width="100" align="left">
     </div>
     <div style="flex-grow: 1;" align="center">
-        <h2 align="center">(Long)LLMLingua: Enhancing Large Language Model Inference via Prompt Compression</h2>
+        <h2 align="center">LLMLingua Series | Effectively Deliver Information to LLMs via Prompt Compression</h2>
     </div>
 </div>
 
 <p align="center">
     | <a href="https://llmlingua.com/"><b>Project Page</b></a> |
-    <a href="https://arxiv.org/abs/2310.05736"><b>LLMLingua Paper</b></a> |
-    <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua Paper</b></a> |
-    <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>HF Space Demo</b></a> |
+    <a href="https://aclanthology.org/2023.emnlp-main.825/"><b>LLMLingua</b></a> |
+    <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua</b></a> |
+    <a href="https://arxiv.org/abs/2403."><b>LLMLingua-2</b></a> |
+    <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>LLMLingua Demo</b></a> |
+    <a href="https://huggingface.co/spaces/microsoft/LLMLingua-2"><b>LLMLingua-2 Demo</b></a> |
 </p>
 
 https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-61f94bb87438
 
 ## News
 
+- 🦚 We're excited to announce the release of **LLMLingua-2**, boasting a 3x-6x speed improvement over LLMLingua! For more information, check out our [paper](https://arxiv.org/abs/2403.), visit the [project page](https://llmlingua.com/llmlingua-2.html), and explore our [demo](https://huggingface.co/spaces/microsoft/LLMLingua-2).
 - 👾 LLMLingua has been integrated into [LangChain](https://github.com/langchain-ai/langchain/blob/master/docs/docs/integrations/retrievers/llmlingua.ipynb) and [LlamaIndex](https://github.com/run-llama/llama_index/blob/main/docs/examples/node_postprocessor/LongLLMLingua.ipynb), two widely-used RAG frameworks.
 - 🤳 Talk slides are available in [AI Time Jan, 24](https://drive.google.com/file/d/1fzK3wOvy2boF7XzaYuq2bQ3jFeP1WMk3/view?usp=sharing).
 - 🖥 EMNLP'23 slides are available in [Session 5](https://drive.google.com/file/d/1GxQLAEN8bBB2yiEdQdW4UKoJzZc0es9t/view) and [BoF-6](https://drive.google.com/file/d/1LJBUfJrKxbpdkwo13SgPOqugk-UjLVIF/view).
@@ -28,13 +31,19 @@ https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-6
 ## TL;DR
 
 LLMLingua utilizes a compact, well-trained language model (e.g., GPT2-small, LLaMA-7B) to identify and remove non-essential tokens in prompts. This approach enables efficient inference with large language models (LLMs), achieving up to 20x compression with minimal performance loss.
+
 - [LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models](https://aclanthology.org/2023.emnlp-main.825/) (EMNLP 2023)<br>
-_Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
+  _Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
 LongLLMLingua mitigates the 'lost in the middle' issue in LLMs, enhancing long-context information processing. It reduces costs and boosts efficiency with prompt compression, improving RAG performance by up to 21.4% using only 1/4 of the tokens.
-- [LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression](https://arxiv.org/abs/2310.06839) (ICLR ME-FoMo 2024)<br>
-_Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
+- [LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression](https://arxiv.org/abs/2310.06839) (ICLR ME-FoMo 2024)<br>
+  _Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
+
+LLMLingua-2, a small-size yet powerful prompt compression method trained via data distillation from GPT-4 for token classification with a BERT-level encoder, excels in task-agnostic compression. It surpasses LLMLingua in handling out-of-domain data, offering 3x-6x faster performance.
+
+- [LLMLingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression](https://arxiv.org/abs/2403.) (Under Review)<br>
+  _Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Ruhle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, Dongmei Zhang_
 
 ## 🎥 Overview
 
@@ -48,11 +57,11 @@ While Large Language Models like ChatGPT and GPT-4 excel in generalization and r
 
 ![Motivation for LLMLingua](./images/motivation.png)
 
-Now you can use **LLMLingua** & **LongLLMLingua**!
+Now you can use **LLMLingua**, **LongLLMLingua**, and **LLMLingua-2**!
 
 These tools offer an efficient solution to compress prompts by up to **20x**, enhancing the utility of LLMs.
 
-- 💰 **Cost Savings**: Reduces both prompt and generation lengths.
+- 💰 **Cost Savings**: Reduces both prompt and generation lengths with minimal overhead.
 - 📝 **Extended Context Support**: Enhances support for longer contexts, mitigates the "lost in the middle" issue, and boosts overall performance.
 - ⚖️ **Robustness**: No additional training needed for LLMs.
 - 🕵️ **Knowledge Retention**: Maintains original prompt information like ICL and reasoning.
@@ -63,7 +72,7 @@ These tools offer an efficient solution to compress prompts by up to **20x**, en
 
 ![Framework of LongLLMLingua](./images/LongLLMLingua.png)
 
-![Demo of LLMLingua](./images/LLMLingua_demo.png)
+![Framework of LLMLingua-2](./images/LLMLingua-2.png)
 
 PS: This demo is based on the [alt-gpt](https://github.com/feedox/alt-gpt) project. Special thanks to @Livshitz for their valuable contribution.
 
@@ -82,6 +91,7 @@ If you find this repo helpful, please cite the following papers:
     pages = "13358--13376",
 }
 ```
+
 ```bibtex
 @article{jiang-etal-2023-longllmlingua,
     title = "{L}ong{LLML}ingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression",
@@ -93,19 +103,30 @@ If you find this repo helpful, please cite the following papers:
 }
 ```
 
+```bibtex
+@article{wu2024llmlingua2,
+    title = "{LLML}ingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression",
+    author = "Zhuoshi Pan and Qianhui Wu and Huiqiang Jiang and Menglin Xia and Xufang Luo and Jue Zhang and Qingwei Lin and Victor Ruhle and Yuqing Yang and Chin-Yew Lin and H. Vicky Zhao and Lili Qiu and Dongmei Zhang",
+    url = "https://arxiv.org/abs/2403.",
+    journal = "ArXiv preprint",
+    volume = "abs/2403.",
+    year = "2024",
+}
+```
+
 ## 🎯 Quick Start
 
-#### 1. **Installing (Long)LLMLingua:**
+#### 1. **Installing LLMLingua:**
 
-To get started with (Long)LLMLingua, simply install it using pip:
+To get started with LLMLingua, simply install it using pip:
 
 ```bash
 pip install llmlingua
 ```
 
-#### 2. **Using (Long)LLMLingua for Prompt Compression:**
+#### 2. **Using LLMLingua Series Methods for Prompt Compression:**
 
-With (Long)LLMLingua, you can easily compress your prompts. Here’s how you can do it:
+With **LLMLingua**, you can easily compress your prompts. Here’s how you can do it:
 
 ```python
 from llmlingua import PromptCompressor
@@ -120,12 +141,49 @@ compressed_prompt = llm_lingua.compress_prompt(prompt, instruction="", question=
 #  'saving': ', Saving $0.1 in GPT-4.'}
 
 ## Or use the phi-2 model,
-## Before that, you need to update the transformers to the github version, like pip install -U git+https://github.com/huggingface/transformers.git
 llm_lingua = PromptCompressor("microsoft/phi-2")
 
 ## Or use the quantation model, like TheBloke/Llama-2-7b-Chat-GPTQ, only need <8GB GPU memory.
 ## Before that, you need to pip install optimum auto-gptq
 llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"revision": "main"})
+```
+
+To try **LongLLMLingua** in your scenorias, you can use
+
+```python
+from llmlingua import PromptCompressor
+
+llm_lingua = PromptCompressor()
+compressed_prompt = llm_lingua.compress_prompt(
+    prompt_list,
+    question=question,
+    ratio=0.55,
+    # Set the special parameter for LongLLMLingua
+    condition_in_question="after_condition",
+    reorder_context="sort",
+    dynamic_context_compression_ratio=0.3, # or 0.4
+    condition_compare=True,
+    context_budget="+100",
+    rank_method="longllmlingua",
+)
+```
+
+To try **LLMLingua-2** in your scenorias, you can use
+
+```python
+from llmlingua import PromptCompressor
+
+llm_lingua = PromptCompressor(
+    model_name="microsoft/llmlingua-2-xlm-roberta-large-meetingbank",
+    use_llmlingua2=True, # Whether to use llmlingua-2
+)
+compressed_prompt = llm_lingua.compress_prompt(prompt, rate=0.33, force_tokens = ['\n', '?'])
+
+## Or use LLMLingua-2-small model
+llm_lingua = PromptCompressor(
+    model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
+    use_llmlingua2=True, # Whether to use llmlingua-2
+)
 ```
 
 #### 3. **Advanced usage - Structured Prompt Compression:**
@@ -148,13 +206,17 @@ print(compressed_prompt['compressed_prompt'])
 
 To understand how to apply LLMLingua and LongLLMLingua in real-world scenarios like RAG, Online Meetings, CoT, and Code, please refer to our [**examples**](./examples). For detailed guidance, the [**documentation**](./DOCUMENT.md) provides extensive recommendations on effectively utilizing LLMLingua.
 
+#### 5. **Data collection and model training of LLMLingua-2:**
+
+To train the compressor on your custom data, please refer to our [**data_collection**](./experiments/llmlingua2/data_collection) and [**model_training**](./experiments/llmlingua2/model_training).
+
 ## Frequently Asked Questions
 
 For more insights and answers, visit our [FAQ section](./Transparency_FAQ.md).
 
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+This project welcomes contributions and suggestions. Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 

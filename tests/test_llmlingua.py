@@ -1,3 +1,6 @@
+# Copyright (c) 2023 Microsoft
+# Licensed under The MIT License [see LICENSE for details]
+
 import unittest
 
 from llmlingua import PromptCompressor
