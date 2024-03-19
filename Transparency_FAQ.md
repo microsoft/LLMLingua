@@ -120,7 +120,7 @@ Out[3]:
 }
 ```
 
-## How to reproduce the result in LLMLingua & LongLLMLingua?
+## How to reproduce the result in LLMLingua Series work?
 
 We release the parameter in the [issue1](https://github.com/microsoft/LLMLingua/issues/76), [issue2](https://github.com/microsoft/LLMLingua/issues/86).
 
@@ -157,6 +157,25 @@ compressed_prompt = llm_lingua.compress_prompt(
 
 Experiments in LLMLingua and most experiments in LongLLMLingua were conducted in completion mode, whereas chat mode tends to be more sensitive to token-level compression. However, OpenAI has currently disabled GPT-3.5-turbo's completion; you can use GPT-3.5-turbo-instruction or Azure OpenAI service instead.
 
+**LLMLingua-2**:
+
+```python
+from llmlingua import PromptCompressor
+
+llm_lingua = PromptCompressor(
+    model_name="microsoft/llmlingua-2-xlm-roberta-large-meetingbank",
+    use_llmlingua2=True, # Whether to use llmlingua-2
+)
+compressed_prompt = llm_lingua.compress_prompt(prompt, rate=0.33, force_tokens = ['\n', '?'])
+
+## Or use LLMLingua-2-small model
+llm_lingua = PromptCompressor(
+    model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
+    use_llmlingua2=True, # Whether to use llmlingua-2
+)
+```
+
+And you can find the details of the LLMLingua-2 experiments at [experiments/llmlingua2](./examples/llmlingua2).
 
 ## How to use LLMLingua in LangChain and LlamaIndex?
 
