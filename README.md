@@ -11,7 +11,7 @@
     | <a href="https://llmlingua.com/"><b>Project Page</b></a> |
     <a href="https://aclanthology.org/2023.emnlp-main.825/"><b>LLMLingua</b></a> |
     <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua</b></a> |
-    <a href="https://arxiv.org/abs/2403."><b>LLMLingua-2</b></a> |
+    <a href="https://arxiv.org/abs/2403.12968"><b>LLMLingua-2</b></a> |
     <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>LLMLingua Demo</b></a> |
     <a href="https://huggingface.co/spaces/microsoft/LLMLingua-2"><b>LLMLingua-2 Demo</b></a> |
 </p>
@@ -20,13 +20,13 @@ https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-6
 
 ## News
 
-- 🦚 We're excited to announce the release of **LLMLingua-2**, boasting a 3x-6x speed improvement over LLMLingua! For more information, check out our [paper](https://arxiv.org/abs/2403.), visit the [project page](https://llmlingua.com/llmlingua-2.html), and explore our [demo](https://huggingface.co/spaces/microsoft/LLMLingua-2).
+- 🦚 We're excited to announce the release of **LLMLingua-2**, boasting a 3x-6x speed improvement over LLMLingua! For more information, check out our [paper](https://arxiv.org/abs/2403.12968), visit the [project page](https://llmlingua.com/llmlingua2.html), and explore our [demo](https://huggingface.co/spaces/microsoft/LLMLingua-2).
 - 👾 LLMLingua has been integrated into [LangChain](https://github.com/langchain-ai/langchain/blob/master/docs/docs/integrations/retrievers/llmlingua.ipynb) and [LlamaIndex](https://github.com/run-llama/llama_index/blob/main/docs/examples/node_postprocessor/LongLLMLingua.ipynb), two widely-used RAG frameworks.
 - 🤳 Talk slides are available in [AI Time Jan, 24](https://drive.google.com/file/d/1fzK3wOvy2boF7XzaYuq2bQ3jFeP1WMk3/view?usp=sharing).
 - 🖥 EMNLP'23 slides are available in [Session 5](https://drive.google.com/file/d/1GxQLAEN8bBB2yiEdQdW4UKoJzZc0es9t/view) and [BoF-6](https://drive.google.com/file/d/1LJBUfJrKxbpdkwo13SgPOqugk-UjLVIF/view).
 - 📚 Check out our new [blog post](https://medium.com/@iofu728/longllmlingua-bye-bye-to-middle-loss-and-save-on-your-rag-costs-via-prompt-compression-54b559b9ddf7) discussing RAG benefits and cost savings through prompt compression. See the script example [here](https://github.com/microsoft/LLMLingua/blob/main/examples/Retrieval.ipynb).
 - 🎈 Visit our [project page](https://llmlingua.com/) for real-world case studies in RAG, Online Meetings, CoT, and Code.
-- 👨‍🦯 Explore our ['./examples'](./examples) directory for practical applications, including [RAG](./examples/RAG.ipynb), [Online Meeting](./examples/OnlineMeeting.ipynb), [CoT](./examples/CoT.ipynb), [Code](./examples/Code.ipynb), and [RAG using LlamaIndex](./examples/RAGLlamaIndex.ipynb).
+- 👨‍🦯 Explore our ['./examples'](./examples) directory for practical applications, including [LLMLingua-2](./examples/LLMLingua2.ipynb), [RAG](./examples/RAG.ipynb), [Online Meeting](./examples/OnlineMeeting.ipynb), [CoT](./examples/CoT.ipynb), [Code](./examples/Code.ipynb), and [RAG using LlamaIndex](./examples/RAGLlamaIndex.ipynb).
 
 ## TL;DR
 
@@ -42,7 +42,7 @@ LongLLMLingua mitigates the 'lost in the middle' issue in LLMs, enhancing long-c
 
 LLMLingua-2, a small-size yet powerful prompt compression method trained via data distillation from GPT-4 for token classification with a BERT-level encoder, excels in task-agnostic compression. It surpasses LLMLingua in handling out-of-domain data, offering 3x-6x faster performance.
 
-- [LLMLingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression](https://arxiv.org/abs/2403.) (Under Review)<br>
+- [LLMLingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression](https://arxiv.org/abs/2403.12968) (Under Review)<br>
   _Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Ruhle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, Dongmei Zhang_
 
 ## 🎥 Overview
@@ -107,9 +107,9 @@ If you find this repo helpful, please cite the following papers:
 @article{wu2024llmlingua2,
     title = "{LLML}ingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression",
     author = "Zhuoshi Pan and Qianhui Wu and Huiqiang Jiang and Menglin Xia and Xufang Luo and Jue Zhang and Qingwei Lin and Victor Ruhle and Yuqing Yang and Chin-Yew Lin and H. Vicky Zhao and Lili Qiu and Dongmei Zhang",
-    url = "https://arxiv.org/abs/2403.",
+    url = "https://arxiv.org/abs/2403.12968",
     journal = "ArXiv preprint",
-    volume = "abs/2403.",
+    volume = "abs/2403.12968",
     year = "2024",
 }
 ```
