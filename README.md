@@ -105,7 +105,7 @@ If you find this repo helpful, please cite the following papers:
 
 ```bibtex
 @article{wu2024llmlingua2,
-    title = "{LLML}ingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression",
+    title = "{LLML}ingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression",
     author = "Zhuoshi Pan and Qianhui Wu and Huiqiang Jiang and Menglin Xia and Xufang Luo and Jue Zhang and Qingwei Lin and Victor Ruhle and Yuqing Yang and Chin-Yew Lin and H. Vicky Zhao and Lili Qiu and Dongmei Zhang",
     url = "https://arxiv.org/abs/2403.12968",
     journal = "ArXiv preprint",
