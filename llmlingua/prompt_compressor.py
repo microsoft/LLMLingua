@@ -38,8 +38,7 @@ class PromptCompressor:
     The PromptCompressor class is versatile and can be adapted for various models and specific requirements in prompt processing.
     Users can specify different model names and configurations as needed for their particular use case.The architecture is
     based on the paper "LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models". Jiang, Huiqiang, Qianhui Wu,
-    Chin-Yew Lin, Yuqing Yang, and Lili Qiu. "Llmlingua: Compressing prompts for accelerated inference of large language models."
-    arXiv preprint arXiv:2310.05736 (2023).
+    Chin-Yew Lin, Yuqing Yang, and Lili Qiu. arXiv preprint arXiv:2310.05736 (2023).
 
     Args:
         model_name (str, optional): The name of the language model to be loaded. Default is "NousResearch/Llama-2-7b-hf".
@@ -47,10 +46,9 @@ class PromptCompressor:
         model_config (dict, optional): A dictionary containing the configuration parameters for the model. Default is an empty dictionary.
         open_api_config (dict, optional): A dictionary containing configuration for openai APIs that may be used in conjunction with the model. Default is an empty dictionary.
         use_llmlingua2 (bool, optional): Whether to use llmlingua-2 compressor based on the paper
-            "LLMLingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression".
+            "LLMLingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression".
             Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Ruhle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, Dongmei Zhang.
-            "LLMLingua-2: Context-Aware Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression". arXiv preprint arXiv:,
-            Default is True.
+            arXiv preprint arXiv:2403.2403.12968 (2024), Default is True.
         llmlingua2_config (dict, optional): A dictionary containing the configuration parameters for llmlingua-2. Default is
             {
                 "max_batch_size": 50,
