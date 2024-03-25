@@ -2,9 +2,10 @@
 # Licensed under The MIT License [see LICENSE for details]
 
 import bisect
+import json
 import re
 from collections import defaultdict
-from typing import List
+from typing import List, Union
 
 import numpy as np
 import torch
@@ -12,6 +13,7 @@ import torch
 import nltk
 import tiktoken
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+from .utils import process_structured_json_data, remove_consecutive_commas
 
 
 encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -156,6 +158,72 @@ class PromptCompressor:
     def __call__(self, *args, **kwargs):
         return self.compress_prompt(*args, **kwargs)
 
+    def compress_json(
+        self,
+        json_data: dict,
+        json_config: Union[str, dict],
+        instruction: str = "",
+        question: str = "",
+        rate: float = 0.5,
+        target_token: float = -1,
+        iterative_size: int = 200,
+        use_sentence_level_filter: bool = False,
+        use_keyvalue_level_filter: bool = False,
+        use_token_level_filter: bool = True,
+        keep_split: bool = False,
+        keep_first_sentence: int = 0,
+        keep_last_sentence: int = 0,
+        keep_sentence_number: int = 0,
+        high_priority_bonus: int = 100,
+        context_budget: str = "+100",
+        token_budget_ratio: float = 1.4,
+        condition_in_question: str = "none",
+        reorder_keyvalue: str = "original",
+        condition_compare: bool = False,
+        rank_method: str = "llmlingua",
+    ):
+        # print(json_data)
+        # print(json_config_file)
+        context, force_context_ids = process_structured_json_data(
+            json_data, json_config
+        )
+        # print(force_context_ids)
+        # for i in range(len(context)):
+        #     print(i, i in force_context_ids, context[i])
+        compressed_res = self.structured_compress_prompt(
+            context=context,
+            instruction=instruction,
+            question=question,
+            rate=rate,
+            target_token=target_token,
+            iterative_size=iterative_size,
+            force_context_ids=force_context_ids,
+            use_sentence_level_filter=use_sentence_level_filter,
+            use_context_level_filter=use_keyvalue_level_filter,
+            use_token_level_filter=use_token_level_filter,
+            keep_split=keep_split,
+            keep_first_sentence=keep_first_sentence,
+            keep_last_sentence=keep_last_sentence,
+            keep_sentence_number=keep_sentence_number,
+            high_priority_bonus=high_priority_bonus,
+            context_budget=context_budget,
+            token_budget_ratio=token_budget_ratio,
+            condition_in_question=condition_in_question,
+            reorder_context=reorder_keyvalue,
+            condition_compare=condition_compare,
+            add_instruction=False,
+            rank_method=rank_method,
+            concate_question=False,
+            strict_preserve_uncompressed=False,
+        )
+        compressed_json_text = remove_consecutive_commas(
+            compressed_res["compressed_prompt"]
+        )
+        print(compressed_res["compressed_prompt"])
+        print(compressed_json_text)
+        compressed_res["compressed_prompt"] = json.loads(compressed_json_text)
+        return compressed_res
+
     def structured_compress_prompt(
         self,
         context: List[str],
@@ -183,6 +251,7 @@ class PromptCompressor:
         add_instruction: bool = False,
         rank_method: str = "llmlingua",
         concate_question: bool = True,
+        strict_preserve_uncompressed: bool = True,
     ):
         """
         Compresses the given prompt context based on a specified structure.
@@ -304,6 +373,7 @@ class PromptCompressor:
             context_segs=context_segs,
             context_segs_rate=context_segs_rate,
             context_segs_compress=context_segs_compress,
+            strict_preserve_uncompressed=strict_preserve_uncompressed,
         )
 
     def compress_prompt(
@@ -336,6 +406,7 @@ class PromptCompressor:
         context_segs: List[str] = None,
         context_segs_rate: List[float] = None,
         context_segs_compress: List[bool] = None,
+        strict_preserve_uncompressed: bool = True,
     ):
         """
         Compresses the given context.
@@ -445,6 +516,7 @@ class PromptCompressor:
                 context_segs=context_segs,
                 context_segs_rate=context_segs_rate,
                 context_segs_compress=context_segs_compress,
+                strict_preserve_uncompressed=strict_preserve_uncompressed,
             )
             if context_segs is not None:
                 context_segs = [context_segs[idx] for idx in context_used]
@@ -761,6 +833,7 @@ class PromptCompressor:
         context_segs: List[List[str]] = None,
         context_segs_rate: List[List[float]] = None,
         context_segs_compress: List[List[bool]] = None,
+        strict_preserve_uncompressed: bool = True,
     ):
         demostrations_sort = self.get_rank_results(
             context,
@@ -775,9 +848,9 @@ class PromptCompressor:
         target_token = eval("target_token" + context_budget)
         res = []
         used = force_context_ids if force_context_ids is not None else []
-        if context_segs is not None:
+        if context_segs is not None and strict_preserve_uncompressed:
             for idx, _ in enumerate(context):
-                if False in context_segs_compress[idx]:
+                if False in context_segs_compress[idx] and idx not in used:
                     used.append(idx)
 
         self.context_idxs.append([x for idx, (x, _) in enumerate(demostrations_sort)])
@@ -840,12 +913,14 @@ class PromptCompressor:
             sentence_num = len(sentences)
             new_sentences = []
             for i, s in enumerate(sentences):
-                assert s == text[seen_text: seen_text + len(s)]
+                assert s == text[seen_text : seen_text + len(s)]
                 if i == sentence_num - 1:
                     new_sentences.append(text[seen_text:])
                     break
-                next_sentence_start = text.find(sentences[i + 1][:5], seen_text + len(s))
-                new_sentences.append(text[seen_text: next_sentence_start])
+                next_sentence_start = text.find(
+                    sentences[i + 1][:5], seen_text + len(s)
+                )
+                new_sentences.append(text[seen_text:next_sentence_start])
                 seen_text = next_sentence_start
             assert "".join(new_sentences) == text
             return new_sentences
