@@ -3,10 +3,11 @@
 
 import bisect
 import copy
+import json
 import re
 import string
 from collections import defaultdict
-from typing import List
+from typing import List, Union
 
 import nltk
 import numpy as np
@@ -27,6 +28,8 @@ from .utils import (
     is_begin_of_new_word,
     replace_added_token,
     seed_everything,
+    process_structured_json_data,
+    remove_consecutive_commas,
 )
 
 
@@ -207,6 +210,72 @@ class PromptCompressor:
     def __call__(self, *args, **kwargs):
         return self.compress_prompt(*args, **kwargs)
 
+    def compress_json(
+        self,
+        json_data: dict,
+        json_config: Union[str, dict],
+        instruction: str = "",
+        question: str = "",
+        rate: float = 0.5,
+        target_token: float = -1,
+        iterative_size: int = 200,
+        use_sentence_level_filter: bool = False,
+        use_keyvalue_level_filter: bool = False,
+        use_token_level_filter: bool = True,
+        keep_split: bool = False,
+        keep_first_sentence: int = 0,
+        keep_last_sentence: int = 0,
+        keep_sentence_number: int = 0,
+        high_priority_bonus: int = 100,
+        context_budget: str = "+100",
+        token_budget_ratio: float = 1.4,
+        condition_in_question: str = "none",
+        reorder_keyvalue: str = "original",
+        condition_compare: bool = False,
+        rank_method: str = "llmlingua",
+    ):
+        # print(json_data)
+        # print(json_config_file)
+        context, force_context_ids = process_structured_json_data(
+            json_data, json_config
+        )
+        # print(force_context_ids)
+        # for i in range(len(context)):
+        #     print(i, i in force_context_ids, context[i])
+        compressed_res = self.structured_compress_prompt(
+            context=context,
+            instruction=instruction,
+            question=question,
+            rate=rate,
+            target_token=target_token,
+            iterative_size=iterative_size,
+            force_context_ids=force_context_ids,
+            use_sentence_level_filter=use_sentence_level_filter,
+            use_context_level_filter=use_keyvalue_level_filter,
+            use_token_level_filter=use_token_level_filter,
+            keep_split=keep_split,
+            keep_first_sentence=keep_first_sentence,
+            keep_last_sentence=keep_last_sentence,
+            keep_sentence_number=keep_sentence_number,
+            high_priority_bonus=high_priority_bonus,
+            context_budget=context_budget,
+            token_budget_ratio=token_budget_ratio,
+            condition_in_question=condition_in_question,
+            reorder_context=reorder_keyvalue,
+            condition_compare=condition_compare,
+            add_instruction=False,
+            rank_method=rank_method,
+            concate_question=False,
+            strict_preserve_uncompressed=False,
+        )
+        compressed_json_text = remove_consecutive_commas(
+            compressed_res["compressed_prompt"]
+        )
+        print(compressed_res["compressed_prompt"])
+        print(compressed_json_text)
+        compressed_res["compressed_prompt"] = json.loads(compressed_json_text)
+        return compressed_res
+
     def structured_compress_prompt(
         self,
         context: List[str],
@@ -234,6 +303,7 @@ class PromptCompressor:
         add_instruction: bool = False,
         rank_method: str = "llmlingua",
         concate_question: bool = True,
+        strict_preserve_uncompressed: bool = True,
     ):
         """
         Compresses the given prompt context based on a specified structure.
@@ -355,6 +425,7 @@ class PromptCompressor:
             context_segs=context_segs,
             context_segs_rate=context_segs_rate,
             context_segs_compress=context_segs_compress,
+            strict_preserve_uncompressed=strict_preserve_uncompressed,
         )
 
     def compress_prompt(
@@ -398,6 +469,7 @@ class PromptCompressor:
         force_reserve_digit: bool = False,
         drop_consecutive: bool = False,
         chunk_end_tokens: List[str] = [".", "\n"],
+        strict_preserve_uncompressed: bool = True,
     ):
         """
         Compresses the given context.
@@ -547,6 +619,7 @@ class PromptCompressor:
                 context_segs=context_segs,
                 context_segs_rate=context_segs_rate,
                 context_segs_compress=context_segs_compress,
+                strict_preserve_uncompressed=strict_preserve_uncompressed,
             )
             if context_segs is not None:
                 context_segs = [context_segs[idx] for idx in context_used]
@@ -1119,6 +1192,7 @@ class PromptCompressor:
         context_segs: List[List[str]] = None,
         context_segs_rate: List[List[float]] = None,
         context_segs_compress: List[List[bool]] = None,
+        strict_preserve_uncompressed: bool = True,
     ):
         demostrations_sort = self.get_rank_results(
             context,
@@ -1133,9 +1207,9 @@ class PromptCompressor:
         target_token = eval("target_token" + context_budget)
         res = []
         used = force_context_ids if force_context_ids is not None else []
-        if context_segs is not None:
+        if context_segs is not None and strict_preserve_uncompressed:
             for idx, _ in enumerate(context):
-                if False in context_segs_compress[idx]:
+                if False in context_segs_compress[idx] and idx not in used:
                     used.append(idx)
 
         self.context_idxs.append([x for idx, (x, _) in enumerate(demostrations_sort)])
@@ -1211,6 +1285,7 @@ class PromptCompressor:
             return new_sentences
 
         sentences = [nltk.sent_tokenize(c) for c in context]
+        sentences = [sync_sentence(s, c) for s, c in zip(sentences, context)]
         sentences = [sync_sentence(s, c) for s, c in zip(sentences, context)]
         dem_g, s2de, idx = defaultdict(set), defaultdict(int), 0
         for idx_d, s in enumerate(sentences):
