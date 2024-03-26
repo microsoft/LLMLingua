@@ -26,10 +26,10 @@ from .utils import (
     TokenClfDataset,
     get_pure_token,
     is_begin_of_new_word,
-    replace_added_token,
-    seed_everything,
     process_structured_json_data,
     remove_consecutive_commas,
+    replace_added_token,
+    seed_everything,
 )
 
 
@@ -1278,7 +1278,6 @@ class PromptCompressor:
             return new_sentences
 
         sentences = [nltk.sent_tokenize(c) for c in context]
-        sentences = [sync_sentence(s, c) for s, c in zip(sentences, context)]
         sentences = [sync_sentence(s, c) for s, c in zip(sentences, context)]
         dem_g, s2de, idx = defaultdict(set), defaultdict(int), 0
         for idx_d, s in enumerate(sentences):
