@@ -234,14 +234,9 @@ class PromptCompressor:
         condition_compare: bool = False,
         rank_method: str = "llmlingua",
     ):
-        # print(json_data)
-        # print(json_config_file)
         context, force_context_ids = process_structured_json_data(
             json_data, json_config
         )
-        # print(force_context_ids)
-        # for i in range(len(context)):
-        #     print(i, i in force_context_ids, context[i])
         compressed_res = self.structured_compress_prompt(
             context=context,
             instruction=instruction,
@@ -271,8 +266,6 @@ class PromptCompressor:
         compressed_json_text = remove_consecutive_commas(
             compressed_res["compressed_prompt"]
         )
-        print(compressed_res["compressed_prompt"])
-        print(compressed_json_text)
         compressed_res["compressed_prompt"] = json.loads(compressed_json_text)
         return compressed_res
 
