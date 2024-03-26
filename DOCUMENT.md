@@ -103,7 +103,7 @@ llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"re
 
 ### Structured Prompt Compression
 
-Split text into sections, decide on whether to compress and its rate. Use `<llmlingua></llmlingua>` tags for context segmentation, with optional rate and compress parameters.
+Split text into sections, decide on whether to compress and its rate. Use `<llmlingua></llmlingua>` tags for context segmentation, with optional `rate` and `compress` parameters.
 
 ```python
 structured_prompt = """<llmlingua, compress=False>Speaker 4:</llmlingua><llmlingua, rate=0.4> Thank you. And can we do the functions for content? Items I believe are 11, three, 14, 16 and 28, I believe.</llmlingua><llmlingua, compress=False>
@@ -115,6 +115,48 @@ print(compressed_prompt['compressed_prompt'])
 # > Speaker 4:. And can we do the functions for content? Items I believe are11,,116 28,.
 # Speaker 0: a from Council on Price to increase the fund group the Manager0 provide a the the1 is Councilman Super Now. the special group the provide the summerman a the Jazzels a communication from Councilman Austin. Recommendation to increase appropriation in the general fund group in the City Manager department by $300 to provide a donation to the Little Lion Foundation. Item 16 is a communication from Councilman Allen recommendation to increase appropriation in the general fund group in the city manager department by $1,020 to provide contribution to Casa Korero, Sew Feria Business Association, Friends of Long Beach Public Library and Dave Van Patten. Item 28 is a communication. Communication from Vice Mayor Richardson and Council Member Muranga. Recommendation to increase appropriation in the general fund group in the City Manager Department by $1,000 to provide a donation to Ron Palmer Summit. Basketball and Academic Camp.
 # Speaker 4: We have a promotion and a second time as councilman served Councilman Ringa and customers and they have any comments.
+```
+
+### Compress Json data
+
+You can specify the compression method for each key and value by passing a config or a yaml config file. Each key must include four parameters: `rate` indicates the compression ratio for the corresponding value, `compress` indicates whether the corresponding value is compressed, `value_type` indicates the data type of the value, and `pair_remove` indicates whether the key-value pair can be completely deleted.
+
+```python
+json_data = {
+    "id": 987654,
+    "name": "John Doe",
+    "skills": ["Java","Python","Machine Learning","Cloud Computing","AI Development"],
+    "biography": "John Doe, born in New York in 1985, is a renowned software engineer with over 10 years of experience in the field. John graduated from MIT with a degree in Computer Science and has since worked with several Fortune 500 companies. He has a passion for developing innovative software solutions and has contributed to numerous open source projects. John is also an avid writer and speaker at tech conferences, sharing his insights on emerging technologies and their impact on the business world. In his free time, John enjoys hiking, reading science fiction novels, and playing the piano. At TechCorp, John was responsible for leading a team of software engineers and overseeing the development of scalable web applications. He played a key role in driving the adoption of cloud technologies within the company, significantly enhancing the efficiency of their digital operations. In his John on developingedge AI and implementing machine learning solutions for various business applications. He was instrumental in developing a predictive analytics tool that transformed the company's approach to data-driven decision making."
+}
+json_config = {
+    "id": {
+        "rate": 1,
+        "compress": False,
+        "value_type": "int",
+        "pair_remove": True
+    },
+    "name": {
+        "rate": 0.7,
+        "compress": False,
+        "value_type": "str",
+        "pair_remove": False
+    },
+    "skills": {
+        "rate": 0.2,
+        "compress": True,
+        "value_type": "list",
+        "pair_remove": True
+    },
+    "biography": {
+        "rate": 0.3,
+        "compress": True,
+        "value_type": "str",
+        "pair_remove": True
+    }
+}
+compressed_prompt = llm_lingua.compress_json(json_data, json_config, use_keyvalue_level_filter=True)
+print(compressed_prompt['compressed_prompt'])
+# > {'id': 987654, 'name': 'John Doe', 'skills': ['', '', '', '', 'AI'], 'biography': ",York in a has several for developing has avid and speaker at,on and enjoys reading fiction playing. At Tech John for and of scalable He in the of cloud technologies,significantly enhancing the efficiency of their digital operations. In his John on developingedge AI and implementing machine learning solutions for various business applications. He was instrumental in developing a predictive analytics tool that transformed the company's approach to data-driven decision making."}
 ```
 
 ### Integration with LangChain
