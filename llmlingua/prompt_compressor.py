@@ -2228,17 +2228,19 @@ class PromptCompressor:
         return context_probs, context_words
 
     def __chunk_context(self, origin_text, chunk_end_tokens):
+        # leave 2 token for CLS and SEP
+        max_len = self.max_seq_len - 2
         origin_list = []
         origin_tokens = self.tokenizer.tokenize(origin_text)
         n = len(origin_tokens)
         st = 0
         while st < n:
-            if st + self.max_seq_len > n - 1:
+            if st + max_len > n - 1:
                 chunk = self.tokenizer.convert_tokens_to_string(origin_tokens[st:n])
                 origin_list.append(chunk)
                 break
             else:
-                ed = st + self.max_seq_len
+                ed = st + max_len
                 for j in range(0, ed - st):
                     if origin_tokens[ed - j] in chunk_end_tokens:
                         ed = ed - j
