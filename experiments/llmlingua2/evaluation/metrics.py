@@ -156,6 +156,16 @@ def qa_f1_zh_score(prediction, ground_truth, **kwargs):
     return f1_score(prediction_tokens, ground_truth_tokens)
 
 
+def qa_score(prediction, ground_truths):
+    normalized_prediction = normalize_answer2(prediction)
+
+    for ground_truth in ground_truths:
+        normalized_ground_truth = normalize_answer2(ground_truth)
+        if normalized_ground_truth.lower() in normalized_prediction.lower():
+            return 1.0
+    return 0.0
+
+
 import regex
 
 
@@ -207,12 +217,10 @@ def evaluate_with_gt(pred_list, gt_list, truncate_pred=True, logger=None):
         pred_list = pred_list_truncated
 
     metrics = {
-        "qa_f1_score": 0.0,
-        "best_subspan_em": 0.0,
+        "qa_score": 0.0,
     }
     for pred, gts in zip(pred_list, gt_list):
-        metrics["qa_f1_score"] += eval_qa_f1_score(pred, gts)
-        metrics["best_subspan_em"] += best_subspan_em(pred, gts)
+        metrics["qa_score"] += qa_score(pred, gts)
     # average
     for metric_name, score in metrics.items():
         metrics[metric_name] = score * 100 / len(pred_list)

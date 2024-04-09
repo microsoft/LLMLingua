@@ -2407,8 +2407,10 @@ class PromptCompressor:
                     keep_words = []
                     word_labels = []
                     assert len(words) == len(word_probs)
-                    for word, word_porb in zip(words, word_probs):
-                        if word_porb > threshold:
+                    for word, word_prob in zip(words, word_probs):
+                        if word_prob > threshold or (
+                            threshold == 1.0 and word_prob == threshold
+                        ):
                             if (
                                 drop_consecutive
                                 and word in force_tokens
