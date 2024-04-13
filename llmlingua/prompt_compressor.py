@@ -458,7 +458,7 @@ class PromptCompressor:
         word_sep: str = "\t\t|\t\t",
         label_sep: str = " ",
         token_to_word: str = "mean",
-        force_tokens: List[str] = [],
+        strings_to_preserve: List[str] = [],
         force_reserve_digit: bool = False,
         drop_consecutive: bool = False,
         chunk_end_tokens: List[str] = [".", "\n"],
@@ -513,11 +513,11 @@ class PromptCompressor:
             word_sep (str, optional): The sep token used in fn_labeled_original_prompt to partition words. Default is "\t\t|\t\t".
             label_sep (str, optional): The sep token used in fn_labeled_original_prompt to partition word and label.  Default is " ".
             token_to_word (str, optional): How to convert token probability to word probability. Default is "mean".
-            force_tokens (List[str], optional): List of specific tokens to always include in the compressed result. Default is [].
+            strings_to_preserve (List[str], optional): List of specific strings to always include in the compressed result. Default is [].
             force_reserve_digit  (bool, optional): Whether to forcibly reserve tokens that containing digit (0,...,9). Default is False.
-            drop_consecutive (bool, optinal): Whether to drop tokens which are in 'force_tokens' but appears consecutively in compressed prompt.
+            drop_consecutive (bool, optinal): Whether to drop strings which are specified in 'strings_to_preserve' but appears consecutively in compressed prompt.
                 Default is False.
-            chunk_end_tokens (List[str], optinal): The early stop tokens for segmenting chunk. Default is [".", "\n"],
+            chunk_end_tokens (List[str], optinal): The early stop tokens or strings that are used to segment the context into chunks. Default is [".", "\n"],
         Returns:
             dict: A dictionary containing:
                 - "compressed_prompt" (str): The resulting compressed prompt.
@@ -546,7 +546,7 @@ class PromptCompressor:
                 word_sep=word_sep,
                 label_sep=label_sep,
                 token_to_word=token_to_word,
-                force_tokens=force_tokens,
+                strings_to_preserve=strings_to_preserve,
                 force_reserve_digit=force_reserve_digit,
                 drop_consecutive=drop_consecutive,
                 chunk_end_tokens=chunk_end_tokens,
@@ -737,7 +737,7 @@ class PromptCompressor:
         word_sep: str = "\t\t|\t\t",
         label_sep: str = " ",
         token_to_word: str = "mean",
-        force_tokens: List[str] = [],
+        strings_to_preserve: List[str] = [],
         force_reserve_digit: bool = False,
         drop_consecutive: bool = False,
         chunk_end_tokens: List[str] = [".", "\n"],
@@ -765,11 +765,12 @@ class PromptCompressor:
             word_sep (str, optional): The sep token used in fn_labeled_original_prompt to partition words. Default is "\t\t|\t\t".
             label_sep (str, optional): The sep token used in fn_labeled_original_prompt to partition word and label.  Default is " ".
             token_to_word (str, optional): How to convert token probability to word probability. Default is "mean".
-            force_tokens (List[str], optional): List of specific tokens to always include in the compressed result. Default is [].
+            strings_to_preserve (List[str], optional): List of specific tokens to always include in the compressed result. Default is [].
             force_reserve_digit  (bool, optional): Whether to forcibly reserve tokens that containing digit (0,...,9). Default is False.
-            drop_consecutive (bool, optinal): Whether to drop tokens which are in 'force_tokens' but appears consecutively in compressed prompt.
+            drop_consecutive (bool, optinal): Whether to drop tokens which are in 'strings_to_preserve' but appears consecutively in compressed prompt.
                 Default is False.
-            chunk_end_tokens (List[str], optional): The early stop tokens for segmenting chunk. Default is [".", "\n"].
+            chunk_end_tokens (List[str], optional): The early tokens or strings that can be used to indicate the end of a chunk, 
+                thereby segmenting the given context into individual chunks for compression. Default is [".", "\n"].
         Returns:
             dict: A dictionary containing:
                 - "compressed_prompt" (str): The resulting compressed prompt.
@@ -783,9 +784,9 @@ class PromptCompressor:
                 - "saving" (str): Estimated savings in GPT-4 token usage.
 
         """
-        assert len(force_tokens) <= self.max_force_token
+        assert len(strings_to_preserve) <= self.max_force_token
         token_map = {}
-        for i, t in enumerate(force_tokens):
+        for i, t in enumerate(strings_to_preserve):
             if len(self.tokenizer.tokenize(t)) != 1:
                 token_map[t] = self.added_tokens[i]
         chunk_end_tokens = copy.deepcopy(chunk_end_tokens)
@@ -840,7 +841,7 @@ class PromptCompressor:
             context_probs, context_words = self.__get_context_prob(
                 context_chunked,
                 token_to_word=token_to_word,
-                force_tokens=force_tokens,
+                strings_to_preserve=strings_to_preserve,
                 token_map=token_map,
                 force_reserve_digit=force_reserve_digit,
             )
@@ -869,7 +870,7 @@ class PromptCompressor:
                     reserved_context,
                     reduce_rate=max(0, 1 - rate),
                     token_to_word=token_to_word,
-                    force_tokens=force_tokens,
+                    strings_to_preserve=strings_to_preserve,
                     token_map=token_map,
                     force_reserve_digit=force_reserve_digit,
                     drop_consecutive=drop_consecutive,
@@ -879,7 +880,7 @@ class PromptCompressor:
                     reserved_context,
                     reduce_rate=0,
                     token_to_word=token_to_word,
-                    force_tokens=force_tokens,
+                    strings_to_preserve=strings_to_preserve,
                     token_map=token_map,
                     force_reserve_digit=force_reserve_digit,
                     drop_consecutive=drop_consecutive,
@@ -927,7 +928,7 @@ class PromptCompressor:
                 context_chunked,
                 reduce_rate=max(0, 1 - rate),
                 token_to_word=token_to_word,
-                force_tokens=force_tokens,
+                strings_to_preserve=strings_to_preserve,
                 token_map=token_map,
                 force_reserve_digit=force_reserve_digit,
                 drop_consecutive=drop_consecutive,
@@ -937,7 +938,7 @@ class PromptCompressor:
                 context_chunked,
                 reduce_rate=0,
                 token_to_word=token_to_word,
-                force_tokens=force_tokens,
+                strings_to_preserve=strings_to_preserve,
                 token_map=token_map,
                 force_reserve_digit=force_reserve_digit,
                 drop_consecutive=drop_consecutive,
@@ -2152,7 +2153,7 @@ class PromptCompressor:
         self,
         context_list: list,
         token_to_word="mean",
-        force_tokens: List[str] = [],
+        strings_to_preserve: List[str] = [],
         token_map: dict = {},
         force_reserve_digit: bool = False,
     ):
@@ -2199,7 +2200,7 @@ class PromptCompressor:
                     ) = self.__merge_token_to_word(
                         tokens,
                         token_probs,
-                        force_tokens=force_tokens,
+                        strings_to_preserve=strings_to_preserve,
                         token_map=token_map,
                         force_reserve_digit=force_reserve_digit,
                     )
@@ -2253,7 +2254,7 @@ class PromptCompressor:
         return origin_list
 
     def __merge_token_to_word(
-        self, tokens, token_probs, force_tokens, token_map, force_reserve_digit
+        self, tokens, token_probs, strings_to_preserve, token_map, force_reserve_digit
     ):
         words = []
         word_probs = []
@@ -2263,10 +2264,10 @@ class PromptCompressor:
             if token in self.special_tokens:
                 continue
             # add a new word
-            elif is_begin_of_new_word(token, self.model_name, force_tokens, token_map):
+            elif is_begin_of_new_word(token, self.model_name, strings_to_preserve, token_map):
                 pure_token = get_pure_token(token, self.model_name)
                 prob_no_force = prob
-                if pure_token in force_tokens or pure_token in set(token_map.values()):
+                if pure_token in strings_to_preserve or pure_token in set(token_map.values()):
                     prob = 1.0
                 token = replace_added_token(token, token_map)
                 words.append(token)
@@ -2306,7 +2307,7 @@ class PromptCompressor:
         context_list: list,
         reduce_rate: float = 0.5,
         token_to_word: str = "mean",
-        force_tokens: List[str] = [],
+        strings_to_preserve: List[str] = [],
         token_map: dict = {},
         force_reserve_digit: bool = False,
         drop_consecutive: bool = False,
@@ -2374,7 +2375,7 @@ class PromptCompressor:
                     words, valid_token_probs, _ = self.__merge_token_to_word(
                         tokens=tokens,
                         token_probs=token_probs,
-                        force_tokens=force_tokens,
+                        strings_to_preserve=strings_to_preserve,
                         token_map=token_map,
                         force_reserve_digit=force_reserve_digit,
                     )
@@ -2387,7 +2388,7 @@ class PromptCompressor:
                         is_token_between = False
                         prev = None
                         for i, (word, word_prob) in enumerate(zip(words, word_probs)):
-                            if word in force_tokens:
+                            if word in strings_to_preserve:
                                 if is_token_between:
                                     is_token_between = False
                                 elif not is_token_between and word == prev:
@@ -2413,7 +2414,7 @@ class PromptCompressor:
                         ):
                             if (
                                 drop_consecutive
-                                and word in force_tokens
+                                and word in strings_to_preserve
                                 and len(keep_words) > 0
                                 and keep_words[-1] == word
                             ):
