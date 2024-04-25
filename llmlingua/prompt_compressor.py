@@ -992,7 +992,6 @@ class PromptCompressor:
             cur_prefix = self.tokenizer.decode(full_input_ids[:i])
             if cur_prefix == prefix:
                 break
-        assert self.tokenizer.decode(full_input_ids[i:]) == text[:100]
         return i
 
     def get_condition_ppl(
