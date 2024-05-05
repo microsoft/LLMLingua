@@ -5,7 +5,6 @@ import bisect
 import copy
 import json
 import re
-import string
 from collections import defaultdict
 from typing import List, Union
 
@@ -367,9 +366,10 @@ class PromptCompressor:
             for c in context
         ]
         context_tokens_length = [self.get_token_length(c) for c in context]
-        instruction_tokens_length, question_tokens_length = self.get_token_length(
-            instruction
-        ), self.get_token_length(question)
+        instruction_tokens_length, question_tokens_length = (
+            self.get_token_length(instruction),
+            self.get_token_length(question),
+        )
         if target_token == -1:
             target_token = (
                 (
@@ -579,9 +579,10 @@ class PromptCompressor:
             )
         )
         context_tokens_length = [self.get_token_length(c) for c in context]
-        instruction_tokens_length, question_tokens_length = self.get_token_length(
-            instruction
-        ), self.get_token_length(question)
+        instruction_tokens_length, question_tokens_length = (
+            self.get_token_length(instruction),
+            self.get_token_length(question),
+        )
         if target_token == -1:
             target_token = (
                 (
@@ -801,7 +802,8 @@ class PromptCompressor:
         if len(context) == 1 and use_context_level_filter:
             use_context_level_filter = False
 
-        n_original_token = 0
+        n_original_token = len(self.oai_tokenizer.encode("\n\n".join(context).strip()))
+
         context_chunked = []
         for i in range(len(context)):
             n_original_token += self.get_token_length(
@@ -1219,9 +1221,10 @@ class PromptCompressor:
         if reorder_context == "original":
             used = sorted(used)
         elif reorder_context == "two_stage":
-            l, r = [_ for idx, _ in enumerate(used) if idx % 2 == 0], [
-                _ for idx, _ in enumerate(used) if idx % 2 == 1
-            ]
+            l, r = (
+                [_ for idx, _ in enumerate(used) if idx % 2 == 0],
+                [_ for idx, _ in enumerate(used) if idx % 2 == 1],
+            )
             used = l + r[::-1]
 
         if dynamic_context_compression_ratio > 0:
@@ -1586,8 +1589,9 @@ class PromptCompressor:
         while end <= compressed_input_ids.shape[1]:
             if end > self.max_position_embeddings and past_key_values is not None:
                 # KV-Cache Compression
-                e, s = end - self.max_position_embeddings, min(
-                    self.cache_bos_num + start, self.max_position_embeddings
+                e, s = (
+                    end - self.max_position_embeddings,
+                    min(self.cache_bos_num + start, self.max_position_embeddings),
                 )
                 if pop_compressed_input_ids is None:
                     pop_compressed_input_ids = compressed_input_ids[:, :e]
