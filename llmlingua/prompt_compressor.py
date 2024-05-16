@@ -51,7 +51,7 @@ class PromptCompressor:
         use_llmlingua2 (bool, optional): Whether to use llmlingua-2 compressor based on the paper
             "LLMLingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression".
             Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Ruhle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, Dongmei Zhang.
-            arXiv preprint arXiv:2403.2403.12968 (2024), Default is True.
+            arXiv preprint arXiv:2403.2403.12968 (2024), Default is False.
         llmlingua2_config (dict, optional): A dictionary containing the configuration parameters for llmlingua-2. Default is
             {
                 "max_batch_size": 50,
