@@ -157,7 +157,7 @@ llm_lingua = PromptCompressor()
 compressed_prompt = llm_lingua.compress_prompt(
     prompt_list,
     question=question,
-    ratio=0.55,
+    rate=0.55,
     # Set the special parameter for LongLLMLingua
     condition_in_question="after_condition",
     reorder_context="sort",
