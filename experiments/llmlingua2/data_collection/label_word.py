@@ -6,7 +6,7 @@ import json
 import logging
 import os
 from collections import defaultdict
-
+from datasets import load_dataset
 import spacy
 import torch
 from tqdm import tqdm
@@ -58,16 +58,15 @@ def split_string(input_string, ignore_tokens=set([","])):
 def is_equal(token1, token2):
     return token1.lower() == token2.lower()
 
-
 origins, comps = [], []
-raw_data = json.load(open(args.load_prompt_from, "r"))
-for sid, sample in raw_data.items():
+meeting_bank_comp = load_dataset(args.load_prompt_from, split="train")
+for i, sample in enumerate(meeting_bank_comp):
     if len(sample["prompt_list"]) != len(sample["compressed_prompt_list"]):
-        print(f"{sid}-th length not equal")
+        print(f"{i}-th length not equal")
         continue
     origins.extend(sample["prompt_list"])
     comps.extend(sample["compressed_prompt_list"])
-
+    
 res = {}
 res_pt = defaultdict(list)
 

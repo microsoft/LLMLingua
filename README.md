@@ -148,7 +148,7 @@ llm_lingua = PromptCompressor("microsoft/phi-2")
 llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"revision": "main"})
 ```
 
-To try **LongLLMLingua** in your scenorias, you can use
+To try **LongLLMLingua** in your scenarios, you can use
 
 ```python
 from llmlingua import PromptCompressor
@@ -168,7 +168,7 @@ compressed_prompt = llm_lingua.compress_prompt(
 )
 ```
 
-To try **LLMLingua-2** in your scenorias, you can use
+To try **LLMLingua-2** in your scenarios, you can use
 
 ```python
 from llmlingua import PromptCompressor

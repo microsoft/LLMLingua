@@ -1,10 +1,10 @@
 ### Use our collected data
 
-We will release our collected GPT-4 compression result at [HF](https://huggingface.co/datasets/microsoft/LLMLingua-2-data-MeetingBankComp) after review. To load data, simply use
+We release our collected GPT-4 compression result at [HF](https://huggingface.co/datasets/microsoft/MeetingBank-LLMCompressed) after review. To load data, simply use
 
 ```python
 from datasets import load_dataset
-data = load_dataset("microsoft/LLMLingua-2-data-MeetingBankComp", split="train")
+data = load_dataset("microsoft/MeetingBank-LLMCompressed", split="train")
 print(len(data))
 for idx, sample in enumerate(data):
     # concatenation of all chunks
@@ -16,7 +16,7 @@ for idx, sample in enumerate(data):
 To load compressed chunks along with original chunks, simply use
 ```python
 from datasets import load_dataset
-data = load_dataset("microsoft/LLMLingua-2-data-MeetingBankComp", split="train")
+data = load_dataset("microsoft/MeetingBank-LLMCompressed", split="train")
 print(len(data))
 for idx, sample in enumerate(data):
     # chunk list

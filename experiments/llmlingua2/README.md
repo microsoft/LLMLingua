@@ -24,7 +24,7 @@ pip install tensorboard
 
 ## Data collection
 
-We will release our collected GPT-4 compression result at [HF](https://huggingface.co/datasets/microsoft/LLMLingua-2-data-MeetingBankComp) after review. We also provide the whole data collection pipeline at [**collect_data.sh**](data_collection/collect_data.sh) to help you construct your custom compression dataset.
+We release our collected GPT-4 compression result at [HF](https://huggingface.co/datasets/microsoft/MeetingBank-LLMCompressed) after review. We also provide the whole data collection pipeline at [**collect_data.sh**](data_collection/collect_data.sh) to help you construct your custom compression dataset.
 
 ## Model Training
 
