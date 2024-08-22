@@ -33,6 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest pytest-xdist
+          python -c "import nltk; nltk.download('punkt_tab')"
 
       - name: Install packages
         run: |
