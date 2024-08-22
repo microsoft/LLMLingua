@@ -10,8 +10,8 @@
 <p align="center">
     | <a href="https://llmlingua.com/"><b>Project Page</b></a> |
     <a href="https://aclanthology.org/2023.emnlp-main.825/"><b>LLMLingua</b></a> |
-    <a href="https://arxiv.org/abs/2310.06839"><b>LongLLMLingua</b></a> |
-    <a href="https://arxiv.org/abs/2403.12968"><b>LLMLingua-2</b></a> |
+    <a href="https://aclanthology.org/2024.acl-long.91/"><b>LongLLMLingua</b></a> |
+    <a href="https://aclanthology.org/2024.findings-acl.57/"><b>LLMLingua-2</b></a> |
     <a href="https://huggingface.co/spaces/microsoft/LLMLingua"><b>LLMLingua Demo</b></a> |
     <a href="https://huggingface.co/spaces/microsoft/LLMLingua-2"><b>LLMLingua-2 Demo</b></a> |
 </p>
@@ -21,7 +21,7 @@ https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-6
 ## News
 - 🌀  [24/07/03] We're excited to announce the release of [MInference](https://aka.ms/MInference) to speed up Long-context LLMs' inference, reduces inference latency by up to **10X** for pre-filling on an A100 while maintaining accuracy in **1M tokens prompt**! For more information, check out our [paper](https://arxiv.org/abs/2407.02490), visit the [project page](https://aka.ms/MInference).
 - 🧩 LLMLingua has been integrated into [Prompt flow](https://microsoft.github.io/promptflow/integrations/tools/llmlingua-prompt-compression-tool.html), a streamlined tool framework for LLM-based AI applications.
-- 🦚 We're excited to announce the release of **LLMLingua-2**, boasting a 3x-6x speed improvement over LLMLingua! For more information, check out our [paper](https://arxiv.org/abs/2403.12968), visit the [project page](https://llmlingua.com/llmlingua2.html), and explore our [demo](https://huggingface.co/spaces/microsoft/LLMLingua-2).
+- 🦚 We're excited to announce the release of **LLMLingua-2**, boasting a 3x-6x speed improvement over LLMLingua! For more information, check out our [paper](https://aclanthology.org/2024.findings-acl.57/), visit the [project page](https://llmlingua.com/llmlingua2.html), and explore our [demo](https://huggingface.co/spaces/microsoft/LLMLingua-2).
 - 👾 LLMLingua has been integrated into [LangChain](https://github.com/langchain-ai/langchain/blob/master/docs/docs/integrations/retrievers/llmlingua.ipynb) and [LlamaIndex](https://github.com/run-llama/llama_index/blob/main/docs/examples/node_postprocessor/LongLLMLingua.ipynb), two widely-used RAG frameworks.
 - 🤳 Talk slides are available in [AI Time Jan, 24](https://drive.google.com/file/d/1fzK3wOvy2boF7XzaYuq2bQ3jFeP1WMk3/view?usp=sharing).
 - 🖥 EMNLP'23 slides are available in [Session 5](https://drive.google.com/file/d/1GxQLAEN8bBB2yiEdQdW4UKoJzZc0es9t/view) and [BoF-6](https://drive.google.com/file/d/1LJBUfJrKxbpdkwo13SgPOqugk-UjLVIF/view).
@@ -38,12 +38,12 @@ LLMLingua utilizes a compact, well-trained language model (e.g., GPT2-small, LLa
 
 LongLLMLingua mitigates the 'lost in the middle' issue in LLMs, enhancing long-context information processing. It reduces costs and boosts efficiency with prompt compression, improving RAG performance by up to 21.4% using only 1/4 of the tokens.
 
-- [LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression](https://arxiv.org/abs/2310.06839) (ACL 2024 and ICLR ME-FoMo 2024)<br>
+- [LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression](https://aclanthology.org/2024.acl-long.91/) (ACL 2024 and ICLR ME-FoMo 2024)<br>
   _Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang and Lili Qiu_
 
 LLMLingua-2, a small-size yet powerful prompt compression method trained via data distillation from GPT-4 for token classification with a BERT-level encoder, excels in task-agnostic compression. It surpasses LLMLingua in handling out-of-domain data, offering 3x-6x faster performance.
 
-- [LLMLingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression](https://arxiv.org/abs/2403.12968) (ACL 2024 Findings)<br>
+- [LLMLingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression](https://aclanthology.org/2024.findings-acl.57/) (ACL 2024 Findings)<br>
   _Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Ruhle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, Dongmei Zhang_
 
 ## 🎥 Overview
@@ -83,9 +83,13 @@ If you find this repo helpful, please cite the following papers:
 @inproceedings{jiang-etal-2023-llmlingua,
     title = "{LLML}ingua: Compressing Prompts for Accelerated Inference of Large Language Models",
     author = "Huiqiang Jiang and Qianhui Wu and Chin-Yew Lin and Yuqing Yang and Lili Qiu",
+    editor = "Bouamor, Houda  and
+      Pino, Juan  and
+      Bali, Kalika",
     booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing",
     month = dec,
     year = "2023",
+    address = "Singapore",
     publisher = "Association for Computational Linguistics",
     url = "https://aclanthology.org/2023.emnlp-main.825",
     doi = "10.18653/v1/2023.emnlp-main.825",
@@ -94,24 +98,36 @@ If you find this repo helpful, please cite the following papers:
 ```
 
 ```bibtex
-@article{jiang-etal-2023-longllmlingua,
-    title = "{L}ong{LLML}ingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression",
+@inproceedings{jiang-etal-2024-longllmlingua,
+    title = "{L}ong{LLML}ingua: Accelerating and Enhancing {LLM}s in Long Context Scenarios via Prompt Compression",
     author = "Huiqiang Jiang and Qianhui Wu and and Xufang Luo and Dongsheng Li and Chin-Yew Lin and Yuqing Yang and Lili Qiu",
-    url = "https://arxiv.org/abs/2310.06839",
-    journal = "ArXiv preprint",
-    volume = "abs/2310.06839",
-    year = "2023",
+    editor = "Ku, Lun-Wei  and
+      Martins, Andre  and
+      Srikumar, Vivek",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.91",
+    pages = "1658--1677",
 }
 ```
 
 ```bibtex
-@article{wu2024llmlingua2,
+@inproceedings{pan-etal-2024-llmlingua,
     title = "{LLML}ingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression",
     author = "Zhuoshi Pan and Qianhui Wu and Huiqiang Jiang and Menglin Xia and Xufang Luo and Jue Zhang and Qingwei Lin and Victor Ruhle and Yuqing Yang and Chin-Yew Lin and H. Vicky Zhao and Lili Qiu and Dongmei Zhang",
-    url = "https://arxiv.org/abs/2403.12968",
-    journal = "ArXiv preprint",
-    volume = "abs/2403.12968",
+    editor = "Ku, Lun-Wei  and
+      Martins, Andre  and
+      Srikumar, Vivek",
+    booktitle = "Findings of the Association for Computational Linguistics ACL 2024",
+    month = aug,
     year = "2024",
+    address = "Bangkok, Thailand and virtual meeting",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.findings-acl.57",
+    pages = "963--981",
 }
 ```
 
