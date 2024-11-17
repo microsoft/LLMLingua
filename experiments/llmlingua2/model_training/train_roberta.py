@@ -40,7 +40,7 @@ parser.add_argument(
 parser.add_argument(
     "--save_path",
     help="save path",
-    default="../../../results/models/xlm_roberta_large_meetingbank_only.pth",
+    default="../../../results/models/xlm_roberta_large_meetingbank_only",
 )
 parser.add_argument("--lr", help="learning rate", default=1e-5, type=float)
 parser.add_argument(
@@ -218,10 +218,13 @@ print(tr_logits.shape)
 optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
 
 best_acc = 0
+
 for epoch in tqdm(range(args.num_epoch)):
     print(f"Training epoch: {epoch + 1}")
     train(epoch)
     acc = test(model, val_dataloader)
     if acc > best_acc:
         best_acc = acc
-        torch.save(model.state_dict(), args.save_path)
+        torch.save(model.state_dict(), f"{args.save_path}/state_dict.pth")
+        model.save_pretrained(args.save_path)
+        tokenizer.save_pretrained(args.save_path)
