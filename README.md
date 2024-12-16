@@ -19,6 +19,8 @@
 https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-61f94bb87438
 
 ## News
+- 🍩 [24/12/13] We are excited to announce the release of our KV cache-centric analysis work, [SCBench](https://aka.ms/SCBench), which evaluates long-context methods from a KV cache perspective.
+- 👘 [24/09/16] We are pleased to announce the release of our KV cache offloading work, [RetrievalAttention](https://aka.ms/RetrievalAttention), which accelerates long-context LLM inference via vector retrieval.
 - 🌀  [24/07/03] We're excited to announce the release of [MInference](https://aka.ms/MInference) to speed up Long-context LLMs' inference, reduces inference latency by up to **10X** for pre-filling on an A100 while maintaining accuracy in **1M tokens prompt**! For more information, check out our [paper](https://arxiv.org/abs/2407.02490), visit the [project page](https://aka.ms/MInference).
 - 🧩 LLMLingua has been integrated into [Prompt flow](https://microsoft.github.io/promptflow/integrations/tools/llmlingua-prompt-compression-tool.html), a streamlined tool framework for LLM-based AI applications.
 - 🦚 We're excited to announce the release of **LLMLingua-2**, boasting a 3x-6x speed improvement over LLMLingua! For more information, check out our [paper](https://aclanthology.org/2024.findings-acl.57/), visit the [project page](https://llmlingua.com/llmlingua2.html), and explore our [demo](https://huggingface.co/spaces/microsoft/LLMLingua-2).
