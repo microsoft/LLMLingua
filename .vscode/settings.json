@@ -1,0 +1,13 @@
+{
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "C:/sources/LLMLingua/tests",
+        "-p",
+        "test*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true,
+    "python.testing.unittestDiscoveryAdapter": "legacy",
+    "python.testing.autoTestDiscoverOnSaveEnabled": true
+}
