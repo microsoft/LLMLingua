@@ -1702,14 +1702,19 @@ class PromptCompressor:
 
             for delta_end, ratio in iterative_ratios[idx]:
                 loss = past_loss
+                seg_end = end - iterative_size + delta_end + 1
+                if seg_end < iterative_size:
+                    seg_end = iterative_size
+                seg_start = seg_end - iterative_size
                 if condition_compare:
                     self_loss = self_past_loss
+                    self_seg_start, self_seg_end = seg_start - start, seg_end - start
                     threshold = self.get_estimate_threshold_base_distribution(
-                        self_loss[: loss[start:].shape[0]] - loss[start:], ratio, False
+                        self_loss[self_seg_start:self_seg_end] - loss[seg_start:seg_end], ratio, False
                     )
                 else:
                     threshold = self.get_estimate_threshold_base_distribution(
-                        loss, ratio, False
+                        loss[seg_start:seg_end], ratio, False
                     )
 
                 (
