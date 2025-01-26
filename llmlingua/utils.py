@@ -79,7 +79,9 @@ def seed_everything(seed: int):
 
 
 def is_begin_of_new_word(token, model_name, force_tokens, token_map):
-    if "bert-base-multilingual-cased" in model_name:
+    if "bert-base-multilingual-cased" in model_name \
+            or "tinybert" in model_name.lower() \
+            or "mobilebert" in model_name.lower():
         if token.lstrip("##") in force_tokens or token.lstrip("##") in set(
             token_map.values()
         ):
@@ -104,7 +106,9 @@ def replace_added_token(token, token_map):
 
 
 def get_pure_token(token, model_name):
-    if "bert-base-multilingual-cased" in model_name:
+    if "bert-base-multilingual-cased" in model_name \
+            or "tinybert" in model_name.lower() \
+            or "mobilebert" in model_name.lower():
         return token.lstrip("##")
     elif "xlm-roberta-large" in model_name:
         return token.lstrip("▁")
