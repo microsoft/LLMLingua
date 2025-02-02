@@ -66,7 +66,7 @@ for labels, origin, comp, retrieval, cr, vr, hr, mr, ag in zip(
     kept["labels"],
     kept["origin"],
     kept["comp"],
-    res_pt["retrieval"],
+    kept["retrieval"],
     kept["comp_rate"],
     kept["variation_rate"],
     kept["hitting_rate"],
