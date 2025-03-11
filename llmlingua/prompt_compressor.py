@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Microsoft
+# Copyright (c) 2023-2025 Microsoft
 # Licensed under The MIT License [see LICENSE for details]
 
 import bisect
@@ -1335,7 +1335,6 @@ class PromptCompressor:
             sentence_ppl = [
                 self.get_condition_ppl(sentence, question, condition_in_question)
                 .cpu()
-                .numpy()
                 .item()
                 for sentence in context_sentences
             ]
