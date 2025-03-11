@@ -2160,7 +2160,7 @@ class PromptCompressor:
                 chunk_list.append(c)
 
         dataset = TokenClfDataset(
-            chunk_list, tokenizer=self.tokenizer, max_len=self.max_seq_len
+            chunk_list, tokenizer=self.tokenizer, max_len=self.max_seq_len, model_name=self.model_name
         )
         dataloader = DataLoader(
             dataset, batch_size=self.max_batch_size, shuffle=False, drop_last=False
@@ -2338,7 +2338,7 @@ class PromptCompressor:
                 chunk_list.append(c)
 
         dataset = TokenClfDataset(
-            chunk_list, tokenizer=self.tokenizer, max_len=self.max_seq_len
+            chunk_list, tokenizer=self.tokenizer, max_len=self.max_seq_len, model_name=self.model_name
         )
         dataloader = DataLoader(
             dataset, batch_size=self.max_batch_size, shuffle=False, drop_last=False
