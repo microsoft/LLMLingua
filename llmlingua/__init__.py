@@ -3,6 +3,7 @@
 
 # flake8: noqa
 from .prompt_compressor import PromptCompressor
+from .prompt_compress_multicore import PromptCompressorV2
 from .version import VERSION as __version__
 
 __all__ = ["PromptCompressor"]
