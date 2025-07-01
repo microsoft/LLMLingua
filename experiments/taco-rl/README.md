@@ -15,6 +15,22 @@ experiments/taco-rl/
 └── logs/                     # Training logs (created during training)
 ```
 
+## Requirements
+
+### Core Dependencies
+- llmlingua
+
+### Additional Dependencies
+Install the following packages for TACO-RL experiments:
+
+```bash
+pip install openai evaluate csv_logger hydra-core rouge_score
+```
+
+### API Access
+- OpenAI API access (for GPT-3.5 teacher model)
+- Azure OpenAI API access (if using Azure services)
+
 ## Quick Start
 
 ### 1. Prepare Your Data
