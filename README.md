@@ -48,6 +48,11 @@ LLMLingua-2, a small-size yet powerful prompt compression method trained via dat
 - [LLMLingua-2: Data Distillation for Efficient and Faithful Task-Agnostic Prompt Compression](https://aclanthology.org/2024.findings-acl.57/) (ACL 2024 Findings)<br>
   _Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Ruhle, Yuqing Yang, Chin-Yew Lin, H. Vicky Zhao, Lili Qiu, Dongmei Zhang_
 
+SecurityLingua is a safety guardrail model that uses the security-aware prompt compression to reveal the malicious intentions behind jailbreak attacks, enabling LLMs to detect attacks and generate safe responses. Due to the highly efficient prompt compression, the defense involves negligible overhead and 100x less token costs compared to state-of-the-art LLM guardrail approaches.
+
+- [SecurityLingua: Efficient Defense of LLM Jailbreak Attacks via Security-Aware Prompt Compression](https://openreview.net/forum?id=tybbSo6wba) (CoLM 2025)<br>
+  _Yucheng Li, Surin Ahn, Huiqiang Jiang, Amir H. Abdi, Yuqing Yang and Lili Qiu_
+
 ## 🎥 Overview
 
 ![Background](./images/LLMLingua_motivation.png)
@@ -133,6 +138,16 @@ If you find this repo helpful, please cite the following papers:
 }
 ```
 
+```bibtex
+@inproceedings{li2025securitylingua,
+  title={{S}ecurity{L}ingua: Efficient Defense of {LLM} Jailbreak Attacks via Security-Aware Prompt Compression},
+  author={Yucheng Li and Surin Ahn and Huiqiang Jiang and Amir H. Abdi and Yuqing Yang and Lili Qiu},
+  booktitle={Second Conference on Language Modeling},
+  year={2025},
+  url={https://openreview.net/forum?id=tybbSo6wba}
+}
+```
+
 ## 🎯 Quick Start
 
 #### 1. **Installing LLMLingua:**
@@ -204,6 +219,20 @@ llm_lingua = PromptCompressor(
     use_llmlingua2=True, # Whether to use llmlingua-2
 )
 ```
+
+To try **SecurityLingua** in your scenarios, you can use
+
+```python
+from llmlingua import PromptCompressor
+
+securitylingua = PromptCompressor(
+    model_name="SecurityLingua/securitylingua-xlm-s2s",
+    use_slingua=True
+)
+intention = securitylingua.compress_prompt(malicious_prompt)
+```
+
+For more details about SecurityLingua, please refer to [securitylingua readme](./experiments/securitylingua/readme.md).
 
 #### 3. **Advanced usage - Structured Prompt Compression:**
 
