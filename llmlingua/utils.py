@@ -87,7 +87,9 @@ def is_begin_of_new_word(token, model_name, force_tokens, token_map):
         ):
             return True
         return not token.startswith("##")
-    elif "xlm-roberta-large" in model_name:
+    elif "xlm-roberta-large" in model_name \
+            or 'slingua' in model_name.lower() \
+            or 'securitylingua' in model_name.lower():
         if (
             token in string.punctuation
             or token in force_tokens
@@ -110,7 +112,9 @@ def get_pure_token(token, model_name):
             or "tinybert" in model_name.lower() \
             or "mobilebert" in model_name.lower():
         return token.lstrip("##")
-    elif "xlm-roberta-large" in model_name:
+    elif "xlm-roberta-large" in model_name \
+            or 'slingua' in model_name.lower() \
+            or 'securitylingua' in model_name.lower():
         return token.lstrip("▁")
     else:
         raise NotImplementedError()

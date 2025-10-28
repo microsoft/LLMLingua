@@ -75,10 +75,12 @@ class PromptCompressor:
         model_config: dict = {},
         open_api_config: dict = {},
         use_llmlingua2: bool = False,
+        use_slingua: bool = False,
         llmlingua2_config: dict = {},
     ):
         self.model_name = model_name
         self.use_llmlingua2 = use_llmlingua2
+        self.use_slingua = use_slingua
         self.retrieval_model = None
         self.retrieval_model_name = None
         self.open_api_config = open_api_config
@@ -87,7 +89,7 @@ class PromptCompressor:
         self.oai_tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
         self.load_model(model_name, device_map, model_config)
-        if use_llmlingua2:
+        if use_llmlingua2 or use_slingua: # slingua use llmlingua2 backend
             self.init_llmlingua2(**llmlingua2_config)
 
     def init_llmlingua2(
@@ -2398,9 +2400,13 @@ class PromptCompressor:
                     for word, word_prob in zip(words, word_probs):
                         num_token = len(self.oai_tokenizer.encode(word))
                         new_token_probs.extend([word_prob for _ in range(num_token)])
-                    threshold = np.percentile(
-                        new_token_probs, int(100 * reduce_rate + 1)
-                    )
+                    
+                    if self.use_slingua:
+                        threshold = 0.5 # slingua use fixed threshold 0.5 for binary token classification
+                    else:
+                        threshold = np.percentile(
+                            new_token_probs, int(100 * reduce_rate + 1)
+                        )
 
                     keep_words = []
                     word_labels = []
