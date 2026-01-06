@@ -1,0 +1,1 @@
+"""DOCX format tests (placeholder)."""
