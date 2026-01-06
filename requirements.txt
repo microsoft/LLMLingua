@@ -1,0 +1,21 @@
+# Core dependencies
+PyMuPDF>=1.23.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+
+# API translation
+openai>=1.0.0
+
+# RTL support for Arabic
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+
+# Optional: environment variables
+python-dotenv>=1.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Optional: table extraction
+# docling  # Uncomment if needed
