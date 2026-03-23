@@ -56,37 +56,37 @@ def extract_ans(ans_model):
 def parse_pred_ans(filename):
     with open(filename) as fd:
         lines = fd.readlines()
-    am, a = None, None
+    am, a, q = None, None, None
     num_q, acc = 0, 0
     current_mode = "none"
     questions = []
     ans_pred = []
     ans_gold = []
-    for l in lines:
-        l = l.replace(",", "")
-        if l.startswith("Q: "):
-            if am is not None and a is not None:
+    for line in lines:
+        line = line.replace(",", "")
+        if line.startswith("Q: "):
+            if am is not None and a is not None and q is not None:
                 questions.append(q)
                 ans_pred.append(am)
                 ans_gold.append(a)
                 if test_answer(am, a):
                     acc += 1
             current_mode = "q"
-            q = l
+            q = line
             num_q += 1
-        elif l.startswith("A_model:"):
+        elif line.startswith("A_model:"):
             current_mode = "am"
-            am = l
-        elif l.startswith("A:"):
+            am = line
+        elif line.startswith("A:"):
             current_mode = "a"
-            a = l
+            a = line
         else:
             if current_mode == "q":
-                q += l
+                q += line
             elif current_mode == "am":
-                am += l
+                am += line
             elif current_mode == "a":
-                a += l
+                a += line
             else:
                 raise ValueError(current_mode)
 

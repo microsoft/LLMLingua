@@ -188,10 +188,9 @@ def eval(load_path):
             lengths[data["task"]].append(data["length"])
     scores = {}
     for task in predictions.keys():
-        pred_list, ans_list, length_list = (
+        pred_list, ans_list = (
             predictions[task],
             answers[task],
-            lengths[task],
         )
         score = scorer(task, pred_list, ans_list, all_classes[task])
         print(score)
@@ -272,7 +271,6 @@ def predict():
 
     for sample in tqdm(dataset):
         idx = int(sample["idx"])
-        task = sample["task"]
         if idx in results or str(idx) in results:
             print(f"{idx} processed")
             continue
