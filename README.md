@@ -1,4 +1,6 @@
 <div style="display: flex; align-items: center;">
+
+[![gitcgr](https://gitcgr.com/badge/microsoft/LLMLingua.svg)](https://gitcgr.com/microsoft/LLMLingua)
     <div style="width: 100px; margin-right: 10px; height:auto;" align="left">
         <img src="images/LLMLingua_logo.png" alt="LLMLingua" width="100" align="left">
     </div>
