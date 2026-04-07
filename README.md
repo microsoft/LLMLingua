@@ -182,6 +182,8 @@ llm_lingua = PromptCompressor("microsoft/phi-2")
 llm_lingua = PromptCompressor("TheBloke/Llama-2-7b-Chat-GPTQ", model_config={"revision": "main"})
 ```
 
+> **🔒 Security Note:** `trust_remote_code` now defaults to `False`. If your model requires custom remote code, opt in explicitly via `model_config={"trust_remote_code": True}`. See [Security Considerations](./DOCUMENT.md#security-considerations) for details.
+
 To try **LongLLMLingua** in your scenarios, you can use
 
 ```python
