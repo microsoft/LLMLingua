@@ -118,7 +118,7 @@ class PromptCompressor:
     def load_model(
         self, model_name: str, device_map: str = "cuda", model_config: dict = {}
     ):
-        trust_remote_code = model_config.get("trust_remote_code", True)
+        trust_remote_code = model_config.get("trust_remote_code", False)
         if "trust_remote_code" not in model_config:
             model_config["trust_remote_code"] = trust_remote_code
         config = AutoConfig.from_pretrained(model_name, **model_config)
@@ -1987,7 +1987,7 @@ class PromptCompressor:
             if self.retrieval_model is None or self.retrieval_model_name != rank_method:
                 model = (
                     AutoModel.from_pretrained(
-                        "jinaai/jina-embeddings-v2-base-en", trust_remote_code=True
+                        "jinaai/jina-embeddings-v2-base-en", trust_remote_code=False
                     )
                     .eval()
                     .to(self.device)
