@@ -165,7 +165,7 @@ def test(model, eval_dataloader):
 
 
 device = "cuda" if cuda.is_available() else "cpu"
-data = torch.load(args.data_path)
+data = torch.load(args.data_path, weights_only=True)
 
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 model = AutoModelForTokenClassification.from_pretrained(

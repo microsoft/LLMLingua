@@ -278,7 +278,7 @@ llm_lingua = PromptCompressor(
 
 - **model_name** (str): Name of the small language model from Huggingface, use "microsoft/llmlingua-2-xlm-roberta-large-meetingbank" or "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank" for LLMLingua-2. Defaults to "NousResearch/Llama-2-7b-hf".
 - **device_map** (str): The computing environment. Options include 'cuda', 'cpu', 'mps', 'balanced', 'balanced_low_0', 'auto'. Default is 'cuda'.
-- **model_config** (dict, optional): Configuration for the Huggingface model. Defaults to {}.
+- **model_config** (dict, optional): Configuration for the Huggingface model. Defaults to {}. Supports `trust_remote_code` (defaults to `False` for security; see [Security Considerations](#security-considerations)).
 - **open_api_config** (dict, optional): Configuration for OpenAI Embedding in coarse-level prompt compression. Defaults to {}.
 - **use_llmlingua2** (bool, optional): Whether to use llmlingua-2 for prompt compression. Defaults is False.
 
@@ -417,3 +417,28 @@ recovered_response = llm_lingua.recover(
 #### Response
 
 - **recovered_response** (str): The recovered response, integrating the original prompt's context.
+
+## Security Considerations
+
+### `trust_remote_code`
+
+By default, LLMLingua sets `trust_remote_code=False` when loading models from the Hugging Face Hub. This prevents the automatic execution of arbitrary Python code shipped within a model repository, which could be exploited in a supply-chain attack.
+
+If you are using a model that requires custom code (e.g., certain Jina embedding models), you can explicitly opt in by passing `trust_remote_code=True` in `model_config`:
+
+```python
+llm_lingua = PromptCompressor(
+    model_name="your-model-name",
+    model_config={"trust_remote_code": True},
+)
+```
+
+> **⚠️ Warning:** Only enable `trust_remote_code` for models you trust. A compromised or malicious model repository could execute arbitrary code on your machine when this option is enabled.
+
+### `torch.load` and `weights_only`
+
+The experiment scripts under `experiments/llmlingua2/` use `torch.load` with `weights_only=True` to prevent arbitrary code execution via Python pickle deserialization. If you are loading your own `.pt` files in custom training or data pipelines, ensure you also use `weights_only=True` unless you fully trust the source of the file:
+
+```python
+data = torch.load(path, weights_only=True)
+```

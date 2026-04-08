@@ -20,7 +20,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-res_pt = torch.load(args.load_path)
+res_pt = torch.load(args.load_path, weights_only=True)
 
 ## filtering
 variation_rate_list = res_pt["variation_rate"]
