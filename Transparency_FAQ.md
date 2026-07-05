@@ -227,3 +227,11 @@ node_postprocessor = LongLLMLinguaPostprocessor(
 ```
 
 For a more detailed guide, please refer to [RAGLlamaIndex Example](https://github.com/microsoft/LLMLingua/blob/main/examples/RAGLlamaIndex.ipynb).
+
+## How does LLMLingua-2 score tokens, and can scores be continuous?
+
+LLMLingua-2 assigns binary scores to each token (0 = drop, 1 = keep) using a BERT-level encoder trained via data distillation from GPT-4. During inference, tokens are dropped based on your target compression ratio or `rate` parameter.
+
+**On continuous/soft scoring:** Community experimentation with continuous 0.0–1.0 importance scores instead of binary labels has revealed a known failure mode — when prompting GPT-4 to assign continuous scores without chain-of-thought reasoning, scores tend to hallucinate and gradually converge toward 0, causing semantically important tokens to be dropped. If finer-grained compression control is needed, consider applying a threshold on the binary classifier's confidence logits rather than re-labeling with continuous scores.
+
+Refer to [issue #229](https://github.com/microsoft/LLMLingua/issues/229) for the original discussion.
