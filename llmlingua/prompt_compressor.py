@@ -28,6 +28,7 @@ from .utils import (
     is_begin_of_new_word,
     process_structured_json_data,
     remove_consecutive_commas,
+    remove_space_between_cjk,
     replace_added_token,
     seed_everything,
 )
@@ -2428,6 +2429,11 @@ class PromptCompressor:
                         else:
                             word_labels.append(0)
                     keep_str = self.tokenizer.convert_tokens_to_string(keep_words)
+                    # convert_tokens_to_string joins words with ASCII spaces
+                    # (an English word convention). CJK scripts have no word
+                    # delimiter, so drop spaces inserted between CJK characters
+                    # (microsoft/LLMLingua#131).
+                    keep_str = remove_space_between_cjk(keep_str)
                     if "xlm-roberta-large" in self.model_name:
                         for i in range(len(words)):
                             words[i] = words[i].lstrip("▁")
