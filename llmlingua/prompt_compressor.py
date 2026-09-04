@@ -1505,12 +1505,38 @@ class PromptCompressor:
             self_compressed_attention_mask,
         )
 
+    @staticmethod
+    def _merge_token_losses(previous_loss, current_loss, start, end, length):
+        """Merge a model window into a loss vector aligned with the tokens."""
+        length = max(int(length), 0)
+        if previous_loss is None:
+            return current_loss[:length]
+
+        if previous_loss.shape[0] < length:
+            padding = torch.full(
+                (length - previous_loss.shape[0],),
+                float("inf"),
+                dtype=previous_loss.dtype,
+                device=previous_loss.device,
+            )
+            previous_loss = torch.cat([previous_loss, padding])
+        else:
+            previous_loss = previous_loss[:length]
+
+        start = max(int(start), 0)
+        end = min(int(end), length, start + current_loss.shape[0])
+        if end > start:
+            previous_loss[start:end] = current_loss[: end - start]
+        return previous_loss
+
     def get_estimate_threshold_base_distribution(
         self, ppl, ratio: float, condition_flag: bool = False
     ):
         if ratio == 1.0:
             return float("-inf")
-        ppl = ppl[ppl != 10000]
+        ppl = ppl[torch.isfinite(ppl) & (ppl != 10000)]
+        if len(ppl) == 0:
+            return float("inf")
         target_token = max(0, min(len(ppl) - 1, int(len(ppl) * ratio) - 1))
         return (
             ppl.sort(descending=not condition_flag)
@@ -1582,7 +1608,12 @@ class PromptCompressor:
             keep_flag = torch.tensor(keep_flag).to(self.device)
         past_key_values, past_loss, ready_end = None, None, 0
         self_past_key_values, self_past_loss, self_ready_end = None, None, 0
-        pop_compressed_input_ids, pop_self_compressed_input_ids = None, None
+        (
+            pop_compressed_input_ids,
+            pop_compressed_attention_mask,
+            pop_self_compressed_input_ids,
+            pop_self_compressed_attention_mask,
+        ) = (None, None, None, None)
         idx = 0
         while end <= compressed_input_ids.shape[1]:
             if end > self.max_position_embeddings and past_key_values is not None:
@@ -1592,9 +1623,17 @@ class PromptCompressor:
                 )
                 if pop_compressed_input_ids is None:
                     pop_compressed_input_ids = compressed_input_ids[:, :e]
+                    pop_compressed_attention_mask = compressed_attention_mask[:, :e]
                 else:
                     pop_compressed_input_ids = torch.cat(
                         [pop_compressed_input_ids, compressed_input_ids[:, :e]], dim=-1
+                    )
+                    pop_compressed_attention_mask = torch.cat(
+                        [
+                            pop_compressed_attention_mask,
+                            compressed_attention_mask[:, :e],
+                        ],
+                        dim=-1,
                     )
                 compressed_input_ids = compressed_input_ids[:, e:]
                 compressed_attention_mask = compressed_attention_mask[:, e:]
@@ -1613,11 +1652,21 @@ class PromptCompressor:
                     self_ready_end -= e
                     if pop_self_compressed_input_ids is None:
                         pop_self_compressed_input_ids = self_compressed_input_ids[:, :e]
+                        pop_self_compressed_attention_mask = (
+                            self_compressed_attention_mask[:, :e]
+                        )
                     else:
                         pop_self_compressed_input_ids = torch.cat(
                             [
                                 pop_self_compressed_input_ids,
                                 self_compressed_input_ids[:, :e],
+                            ],
+                            dim=-1,
+                        )
+                        pop_self_compressed_attention_mask = torch.cat(
+                            [
+                                pop_self_compressed_attention_mask,
+                                self_compressed_attention_mask[:, :e],
                             ],
                             dim=-1,
                         )
@@ -1633,6 +1682,17 @@ class PromptCompressor:
                         for k, v in self_past_key_values
                     ]
 
+            if past_key_values is None and end > self.max_position_embeddings:
+                end = self.max_position_embeddings
+
+            past_length = (
+                0 if past_key_values is None else past_key_values[0][0].shape[2]
+            )
+            loss_end = (
+                end
+                if idx or compressed_input_ids.shape[1] > self.max_position_embeddings
+                else None
+            )
             loss, past_key_values = self.get_ppl(
                 "",
                 "token",
@@ -1640,16 +1700,24 @@ class PromptCompressor:
                 compressed_attention_mask,
                 past_key_values=past_key_values,
                 return_kv=True,
-                end=end if idx else None,
+                # A full-prefix evaluation can exceed the model context window.
+                # In that case ``get_ppl`` clamps the request and returns a
+                # shorter loss vector than ``input_ids``.  The compression
+                # bookkeeping expects the loss and token sequence to cover the
+                # same prefix, so start with the current window for long
+                # prompts and let subsequent iterations extend the coverage.
+                end=loss_end,
             )
             if loss.shape[0] == 0:
                 break
             if past_loss is not None:
-                if end - 1 > len(past_loss):
-                    past_loss = torch.cat(
-                        [past_loss, torch.zeros_like(loss)[: end - 1 - len(past_loss)]]
-                    )
-                past_loss[ready_end : end - 1] = loss
+                past_loss = self._merge_token_losses(
+                    past_loss,
+                    loss,
+                    max(ready_end, past_length),
+                    end - 1,
+                    compressed_input_ids.shape[1] - 1,
+                )
                 loss = past_loss
             else:
                 past_loss = loss
@@ -1662,6 +1730,11 @@ class PromptCompressor:
                 past_key_values = None
 
             if condition_compare:
+                self_past_length = (
+                    0
+                    if self_past_key_values is None
+                    else self_past_key_values[0][0].shape[2]
+                )
                 self_loss, self_past_key_values = self.get_ppl(
                     "",
                     "token",
@@ -1672,16 +1745,13 @@ class PromptCompressor:
                     end=end - start if idx else None,
                 )
                 if self_past_loss is not None:
-                    if end - start - 1 > len(self_past_loss):
-                        self_past_loss = torch.cat(
-                            [
-                                self_past_loss,
-                                torch.zeros_like(self_loss)[
-                                    : end - 1 - start - len(self_past_loss)
-                                ],
-                            ]
-                        )
-                    self_past_loss[self_ready_end : end - start - 1] = self_loss
+                    self_past_loss = self._merge_token_losses(
+                        self_past_loss,
+                        self_loss,
+                        max(self_ready_end, self_past_length),
+                        end - start - 1,
+                        self_compressed_input_ids.shape[1] - 1,
+                    )
                     self_loss = self_past_loss
                 else:
                     self_past_loss = self_loss
@@ -1745,6 +1815,9 @@ class PromptCompressor:
         if pop_compressed_input_ids is not None:
             compressed_input_ids = torch.cat(
                 [pop_compressed_input_ids, compressed_input_ids], dim=-1
+            )
+            compressed_attention_mask = torch.cat(
+                [pop_compressed_attention_mask, compressed_attention_mask], dim=-1
             )
         return compressed_input_ids[:, start:], compressed_attention_mask[:, start:]
 
