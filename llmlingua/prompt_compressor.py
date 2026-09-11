@@ -533,7 +533,7 @@ class PromptCompressor:
                 - "rate" (str): The compression rate achieved, in a human-readable format.
                 - "saving" (str): Estimated savings in GPT-4 token usage.
         """
-        if self.use_llmlingua2:
+        if self.use_llmlingua2 or self.use_slingua:
             return self.compress_prompt_llmlingua2(
                 context,
                 rate=rate,
