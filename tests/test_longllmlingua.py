@@ -65,7 +65,7 @@ class LongLLMLinguaTester(unittest.TestCase):
             import nltk
 
             nltk.download("punkt")
-        except:
+        except Exception:
             print("nltk_data exits.")
         self.llmlingua = PromptCompressor("lgaalves/gpt2-dolly", device_map="cpu")
 
