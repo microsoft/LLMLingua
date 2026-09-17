@@ -1,0 +1,1 @@
+"""DOCX format handling (placeholder)."""

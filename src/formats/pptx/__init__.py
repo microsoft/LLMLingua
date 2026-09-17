@@ -1,0 +1,1 @@
+"""PPTX format handling (placeholder)."""
