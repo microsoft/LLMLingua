@@ -175,7 +175,7 @@ llm_lingua = PromptCompressor(
 )
 ```
 
-And you can find the details of the LLMLingua-2 experiments at [experiments/llmlingua2](./examples/llmlingua2).
+And you can find the details of the LLMLingua-2 experiments at [experiments/llmlingua2](./experiments/llmlingua2).
 
 ## How to use LLMLingua in LangChain and LlamaIndex?
 
