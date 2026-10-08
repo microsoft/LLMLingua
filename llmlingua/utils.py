@@ -78,7 +78,24 @@ def seed_everything(seed: int):
     torch.backends.cudnn.benchmark = False
 
 
-def is_begin_of_new_word(token, model_name, force_tokens, token_map):
+def detect_subword_style(tokenizer):
+    """How the tokenizer marks word boundaries: "wordpiece" (continuations start with ##),
+    "sentencepiece" (word starts carry ▁) or "bytelevel" (word starts carry Ġ).
+    Lets any LLMLingua-2-style token classifier work without a model-name special case."""
+    tokens = tokenizer.tokenize("hello unbelievably wonderful")
+    if any(t.startswith("##") for t in tokens):
+        return "wordpiece"
+    if any(t.startswith("▁") for t in tokens):
+        return "sentencepiece"
+    if any(t.startswith("Ġ") for t in tokens):
+        return "bytelevel"
+    return None
+
+
+_STYLE_PREFIX = {"sentencepiece": "▁", "bytelevel": "Ġ"}
+
+
+def is_begin_of_new_word(token, model_name, force_tokens, token_map, style=None):
     if "bert-base-multilingual-cased" in model_name \
             or "tinybert" in model_name.lower() \
             or "mobilebert" in model_name.lower():
@@ -97,6 +114,16 @@ def is_begin_of_new_word(token, model_name, force_tokens, token_map):
         ):
             return True
         return token.startswith("▁")
+    elif style == "wordpiece":
+        if token.lstrip("##") in force_tokens or token.lstrip("##") in set(token_map.values()):
+            return True
+        return not token.startswith("##")
+    elif style in _STYLE_PREFIX:
+        # A word starts only where the tokenizer saw whitespace, so identifiers such as
+        # "ord_8f3a2c91" or "10.0.4.17:5432" stay one word instead of being split at "_" / ".".
+        if token in force_tokens or token in set(token_map.values()):
+            return True
+        return token.startswith(_STYLE_PREFIX[style])
     else:
         raise NotImplementedError()
 
@@ -107,7 +134,7 @@ def replace_added_token(token, token_map):
     return token
 
 
-def get_pure_token(token, model_name):
+def get_pure_token(token, model_name, style=None):
     if "bert-base-multilingual-cased" in model_name \
             or "tinybert" in model_name.lower() \
             or "mobilebert" in model_name.lower():
@@ -116,6 +143,10 @@ def get_pure_token(token, model_name):
             or 'slingua' in model_name.lower() \
             or 'securitylingua' in model_name.lower():
         return token.lstrip("▁")
+    elif style == "wordpiece":
+        return token.lstrip("##")
+    elif style in _STYLE_PREFIX:
+        return token.lstrip(_STYLE_PREFIX[style])
     else:
         raise NotImplementedError()
 

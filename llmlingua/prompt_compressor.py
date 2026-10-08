@@ -25,6 +25,7 @@ from transformers import (
 from .utils import (
     TokenClfDataset,
     get_pure_token,
+    detect_subword_style,
     is_begin_of_new_word,
     process_structured_json_data,
     remove_consecutive_commas,
@@ -89,6 +90,7 @@ class PromptCompressor:
         self.oai_tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
         self.load_model(model_name, device_map, model_config)
+        self.subword_style = detect_subword_style(self.tokenizer)
         if use_llmlingua2 or use_slingua: # slingua use llmlingua2 backend
             self.init_llmlingua2(**llmlingua2_config)
 
@@ -2207,9 +2209,11 @@ class PromptCompressor:
                         valid_token_probs_no_force, convert_mode=token_to_word
                     )
 
-                    if "xlm-roberta-large" in self.model_name:
+                    prefix = "▁" if "xlm-roberta-large" in self.model_name else {
+                        "sentencepiece": "▁", "bytelevel": "Ġ"}.get(self.subword_style)
+                    if prefix:
                         for i in range(len(words)):
-                            words[i] = words[i].lstrip("▁")
+                            words[i] = words[i].lstrip(prefix)
                     chunk_words.append(words)
                     chunk_probs.append(word_probs_no_force)
 
@@ -2263,8 +2267,10 @@ class PromptCompressor:
             if token in self.special_tokens:
                 continue
             # add a new word
-            elif is_begin_of_new_word(token, self.model_name, force_tokens, token_map):
-                pure_token = get_pure_token(token, self.model_name)
+            elif is_begin_of_new_word(
+                token, self.model_name, force_tokens, token_map, self.subword_style
+            ):
+                pure_token = get_pure_token(token, self.model_name, self.subword_style)
                 prob_no_force = prob
                 if pure_token in force_tokens or pure_token in set(token_map.values()):
                     prob = 1.0
@@ -2280,7 +2286,7 @@ class PromptCompressor:
                 word_probs_no_force.append([prob_no_force])
             # concatenate with previous token
             else:
-                pure_token = get_pure_token(token, self.model_name)
+                pure_token = get_pure_token(token, self.model_name, self.subword_style)
                 words[-1] += pure_token
                 word_probs[-1].append(
                     1.0
@@ -2428,9 +2434,11 @@ class PromptCompressor:
                         else:
                             word_labels.append(0)
                     keep_str = self.tokenizer.convert_tokens_to_string(keep_words)
-                    if "xlm-roberta-large" in self.model_name:
+                    prefix = "▁" if "xlm-roberta-large" in self.model_name else {
+                        "sentencepiece": "▁", "bytelevel": "Ġ"}.get(self.subword_style)
+                    if prefix:
                         for i in range(len(words)):
-                            words[i] = words[i].lstrip("▁")
+                            words[i] = words[i].lstrip(prefix)
 
                     compressed_chunk_list.append(keep_str)
                     word_list.append(words[:])
