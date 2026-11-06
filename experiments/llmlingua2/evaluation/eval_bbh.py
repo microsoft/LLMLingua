@@ -246,7 +246,7 @@ def predict():
         results[idx] = {"question": q, "model_answer": answer, "truth_answer": a}
         json.dump(results, open(args.save_path, "w"), indent=4)
 
-        ans_ = extract_ans(answer, task_type)
+        extract_ans(answer, task_type)
         if task_type == "multiple_choice":
             a = a[1]
         res = "%dTask:%s\n%s\nA_model:%s\nA_target:%s\n\n" % (

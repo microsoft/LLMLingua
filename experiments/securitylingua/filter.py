@@ -3,7 +3,7 @@
 
 import argparse
 from collections import defaultdict
-from typing import Dict, List, Tuple, DefaultDict
+from typing import List, Tuple, DefaultDict
 import numpy as np
 import torch
 

@@ -5,7 +5,6 @@ import bisect
 import copy
 import json
 import re
-import string
 from collections import defaultdict
 from typing import List, Union
 
@@ -796,7 +795,7 @@ class PromptCompressor:
                 chunk_end_tokens.append(token_map[c])
         chunk_end_tokens = set(chunk_end_tokens)
 
-        if type(context) == str:
+        if isinstance(context, str):
             context = [context]
         context = copy.deepcopy(context)
 
@@ -1221,10 +1220,10 @@ class PromptCompressor:
         if reorder_context == "original":
             used = sorted(used)
         elif reorder_context == "two_stage":
-            l, r = [_ for idx, _ in enumerate(used) if idx % 2 == 0], [
+            left, right = [_ for idx, _ in enumerate(used) if idx % 2 == 0], [
                 _ for idx, _ in enumerate(used) if idx % 2 == 1
             ]
-            used = l + r[::-1]
+            used = left + right[::-1]
 
         if dynamic_context_compression_ratio > 0:
             N = len(used)
@@ -1764,8 +1763,8 @@ class PromptCompressor:
                     response_c[original_input_ids[idx]].append(idx)
             res, res_min, res_c = None, float("inf"), 1
             n = len(response_input_ids)
-            for l in response_c[response_input_ids[0]]:
-                x, y, c = 0, l, 1
+            for start_idx in response_c[response_input_ids[0]]:
+                x, y, c = 0, start_idx, 1
                 for x in range(1, n):
                     idx = bisect.bisect_right(response_c[response_input_ids[x]], y)
                     if (
@@ -1777,18 +1776,14 @@ class PromptCompressor:
                     y = response_c[response_input_ids[x]][idx]
                 if c > res_c:
                     res_c = c
-                    res_min = y - l + 1
-                    res = (l, y + 1)
-                elif c == res_c and y - l + 1 < res_min:
-                    res_min = y - l + 1
-                    res = (l, y + 1)
+                    res_min = y - start_idx + 1
+                    res = (start_idx, y + 1)
+                elif c == res_c and y - start_idx + 1 < res_min:
+                    res_min = y - start_idx + 1
+                    res = (start_idx, y + 1)
 
             if res is None:
                 return response_word
-            # while l > 0 and not self.tokenizer.convert_ids_to_tokens(original_input_ids[l]).startswith("_"):
-            #     l -= 1
-            # while r < M - 1 and not self.tokenizer.convert_ids_to_tokens(original_input_ids[l]).startswith("_"):
-            #     l -= 1
             return self.tokenizer.decode(original_input_ids[res[0] : res[1]])
 
         response_words = response.split(" ")
@@ -1798,21 +1793,21 @@ class PromptCompressor:
         ]
         N, M = len(response_words), len(original_input_ids)
         recovered_response_words = []
-        l = 0
-        while l < N:
-            if response_words[l] not in compressed_prompt:
-                recovered_response_words.append(response_words[l])
-                l += 1
+        left = 0
+        while left < N:
+            if response_words[left] not in compressed_prompt:
+                recovered_response_words.append(response_words[left])
+                left += 1
                 continue
-            r = l
+            right = left
             while (
-                r + 1 < N and " ".join(response_words[l : r + 2]) in compressed_prompt
+                right + 1 < N and " ".join(response_words[left : right + 2]) in compressed_prompt
             ):
-                r += 1
+                right += 1
 
-            match_words = match_from_compressed(" ".join(response_words[l : r + 1]))
+            match_words = match_from_compressed(" ".join(response_words[left : right + 1]))
             recovered_response_words.append(match_words)
-            l = r + 1
+            left = right + 1
         return " ".join(recovered_response_words)
 
     def get_rank_results(
@@ -2176,7 +2171,7 @@ class PromptCompressor:
                 mask = batch["mask"].to(self.device, dtype=torch.long) == 1
 
                 outputs = self.model(input_ids=ids, attention_mask=mask)
-                loss, logits = outputs.loss, outputs.logits
+                logits = outputs.logits
                 probs = F.softmax(logits, dim=-1)
 
                 for j in range(ids.shape[0]):
@@ -2355,7 +2350,7 @@ class PromptCompressor:
                 mask = batch["mask"].to(self.device, dtype=torch.long) == 1
 
                 outputs = self.model(input_ids=ids, attention_mask=mask)
-                loss, logits = outputs.loss, outputs.logits
+                logits = outputs.logits
                 probs = F.softmax(logits, dim=-1)
 
                 for j in range(ids.shape[0]):

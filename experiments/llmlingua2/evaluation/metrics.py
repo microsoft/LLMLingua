@@ -2,6 +2,7 @@
 # Licensed under The MIT License [see LICENSE for details]
 
 import re
+import regex
 import string
 from collections import Counter
 from typing import List
@@ -114,7 +115,7 @@ def rouge_score(prediction, ground_truth, **kwargs):
     rouge = Rouge()
     try:
         scores = rouge.get_scores([prediction], [ground_truth], avg=True)
-    except:
+    except Exception:
         return 0.0
     return scores["rouge-l"]["f"]
 
@@ -164,9 +165,6 @@ def qa_score(prediction, ground_truths):
         if normalized_ground_truth.lower() in normalized_prediction.lower():
             return 1.0
     return 0.0
-
-
-import regex
 
 
 def normalize_answer2(s: str) -> str:
