@@ -120,6 +120,28 @@ def get_pure_token(token, model_name):
         raise NotImplementedError()
 
 
+# Matches an ASCII space that sits between two CJK characters. CJK scripts have
+# no word delimiter, so a space produced by convert_tokens_to_string (which
+# joins words with ASCII spaces) between two CJK characters is a spurious
+# artifact. See microsoft/LLMLingua#131. The ranges cover CJK ideographs, the
+# Japanese kana and Korean hangul blocks, and the CJK/fullwidth punctuation
+# blocks (e.g. "，。：、！？") so spaces around CJK punctuation are removed too.
+_CJK = (
+    r"\u3000-\u303f"  # CJK symbols and punctuation
+    r"\u3040-\u30ff"  # Hiragana + Katakana
+    r"\u3400-\u4dbf"  # CJK Extension A
+    r"\u4e00-\u9fff"  # CJK Unified Ideographs
+    r"\uac00-\ud7a3"  # Hangul syllables
+    r"\uf900-\ufaff"  # CJK Compatibility Ideographs
+    r"\uff00-\uffef"  # Halfwidth and fullwidth forms
+)
+_CJK_SPACE_RE = re.compile(r"(?<=[" + _CJK + r"]) (?=[" + _CJK + r"])")
+
+
+def remove_space_between_cjk(text):
+    return _CJK_SPACE_RE.sub("", text)
+
+
 def process_structured_json_data(json_data, json_config):
     if isinstance(json_config, str):
         with open(json_config, "r") as file:
