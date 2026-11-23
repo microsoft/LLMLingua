@@ -1,0 +1,55 @@
+{
+  "input_file": "test_input.pdf",
+  "output_file": "outputs/test_output.pdf",
+  "format": "pdf",
+  "direction": "en_to_ar",
+  "mode": "bilingual",
+  "translator_backend": "mock",
+  "provider": null,
+  "model": null,
+  "prompt_version": null,
+  "pages_count": 1,
+  "blocks_translated": 3,
+  "tables": {
+    "detected": 0,
+    "translated": 0,
+    "method": "auto",
+    "warnings": [
+      "docling not available"
+    ]
+  },
+  "images": {
+    "detected": 0,
+    "captions_added": 0,
+    "resized_count": 0,
+    "warnings": []
+  },
+  "chunking": {
+    "chunks_count": 0,
+    "avg_chunk_len": 0,
+    "max_chunk_len": 0
+  },
+  "cache": {
+    "enabled": false,
+    "hits": 0,
+    "misses": 0,
+    "hit_rate": 0.0,
+    "cache_size": 0
+  },
+  "glossary": {
+    "enabled": false,
+    "terms_matched_count": 0,
+    "protected_terms_count": 0,
+    "mapping_terms_count": 0
+  },
+  "retries": {
+    "retry_count": 0,
+    "failures_count": 0,
+    "timeout_count": 0
+  },
+  "warnings": [
+    "docling not installed; table extraction skipped"
+  ],
+  "fallbacks_used": [],
+  "conversion_warnings": []
+}

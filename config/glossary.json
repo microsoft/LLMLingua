@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "protected_terms": [
+    "DNA",
+    "RNA",
+    "COVID-19",
+    "HTTP",
+    "API",
+    "JSON",
+    "XML"
+  ],
+  "term_mappings": {
+    "machine learning": "تعلم الآلة",
+    "artificial intelligence": "الذكاء الاصطناعي",
+    "neural network": "الشبكة العصبية"
+  }
+}
