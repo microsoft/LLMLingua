@@ -1,0 +1,53 @@
+# Configuration file for REINFORCE training
+
+data:
+  train_file_path: <train_file_path>
+
+model:
+  model_load_path: "microsoft/llmlingua-2-xlm-roberta-large-meetingbank"
+  trained_model_output_dir_hf: "models/reinforce_trained_model"
+
+task:
+  prompt: "Summarize the provided meeting transcript (which may be compressed).\n{transcript}\nSummary:"
+  gpt_model: "gpt-35-turbo"
+  max_tokens: 1500
+
+hyperparams:
+  # Training parameters
+  epochs: 4
+  train_batch_size: 8
+  
+  # Learning rates
+  policy_lr: 1e-5
+  
+  # Compression parameters
+  compression_rate: 0.5
+  compression_relaxation_tokens: 30
+  
+  # REINFORCE specific parameters
+  entropy_coeff: 0.01  # Entropy regularization coefficient
+  
+  # Model parameters
+  max_seq_len: 512
+  
+  # Compression settings
+  target_token: -1
+  use_context_level_filter: false
+  use_token_level_filter: true
+  target_context: -1
+  context_level_compression_rate: 1.0
+  context_level_target_token: -1
+  force_tokens: ""
+  drop_consecutive: true
+  force_reserve_digit: false
+
+# Logging settings
+logging:
+  log_dir: "logs_new"
+  log_interval: 5
+  save_interval: 100
+  
+# Device settings
+device:
+  use_cuda: true
+  device_map: "cpu" 
