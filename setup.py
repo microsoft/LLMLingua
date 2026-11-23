@@ -29,6 +29,8 @@ INSTALL_REQUIRES = [
     "tiktoken",
     "nltk",
     "numpy",
+    "fugashi>=1.2.0",
+    "unidic-lite>=1.0.8",
 ]
 QUANLITY_REQUIRES = [
     "black==21.4b0",
@@ -62,6 +64,7 @@ setup(
     extras_require={
         "dev": DEV_REQUIRES,
         "quality": QUANLITY_REQUIRES,
+        "ja": ["fugashi>=1.2.0", "unidic-lite>=1.0.8"],
     },
     install_requires=INSTALL_REQUIRES,
     include_package_data=True,
