@@ -16,6 +16,10 @@
     <a href="https://huggingface.co/spaces/microsoft/LLMLingua-2"><b>LLMLingua-2 Demo</b></a> |
 </p>
 
+<p align="center">
+    <b>English</b> · <a href="https://github.com/microsoft/LLMLingua/blob/main/README.zh.md">简体中文</a>
+</p>
+
 https://github.com/microsoft/LLMLingua/assets/30883354/eb0ea70d-6d4c-4aa7-8977-61f94bb87438
 
 ## News
