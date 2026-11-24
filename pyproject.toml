@@ -1,3 +1,8 @@
+[project]
+name = "llmlingua"
+version = "0.2.2"
+dynamic = ["description", "readme", "requires-python", "license", "authors", "keywords", "classifiers", "dependencies", "optional-dependencies"]      
+
 [tool.black]
 line-length = 88
 target-version = ['py38']

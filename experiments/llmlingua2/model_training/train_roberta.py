@@ -60,7 +60,7 @@ def train(epoch):
     model.train()
 
     for idx, batch in enumerate(train_dataloader):
-        t = time.time()
+        time.time()
         ids = batch["ids"].to(device, dtype=torch.long)
         mask = batch["mask"].to(device, dtype=torch.long)
         targets = batch["targets"].to(device, dtype=torch.long)
@@ -149,8 +149,7 @@ def test(model, eval_dataloader):
             )
             eval_accuracy += tmp_eval_accuracy
 
-    labels = [label.item() for label in eval_labels]
-    predictions = [pred.item() for pred in eval_preds]
+        predictions = [pred.item() for pred in eval_preds]
 
     eval_loss = eval_loss / nb_eval_steps
     eval_accuracy = eval_accuracy / nb_eval_steps

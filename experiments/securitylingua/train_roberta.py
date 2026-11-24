@@ -4,14 +4,11 @@
 import argparse
 import os
 import random
-import time
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 
 import torch
 from sklearn.metrics import accuracy_score
-from torch import cuda
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import AutoModelForTokenClassification, AutoTokenizer
 from utils import TokenClfDataset

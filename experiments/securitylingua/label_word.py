@@ -12,7 +12,6 @@ import spacy
 import torch
 from tqdm import tqdm
 from multiprocessing import Pool
-import multiprocessing
 
 def setup_logging(save_path: str) -> logging.Logger:
     """Setup logging configuration"""
