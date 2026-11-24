@@ -32,6 +32,39 @@ from .utils import (
     seed_everything,
 )
 
+_CONTEXT_BUDGET_PATTERN = re.compile(r"^\s*([+\-*/])\s*(\d+(?:\.\d+)?)\s*$")
+
+
+def apply_context_budget(target_token: float, context_budget: str) -> float:
+    """
+    Apply a context budget expression such as "+100" or "*1.5" to target_token.
+
+    Only a single arithmetic operator (+, -, *, /) followed by a non-negative
+    number is accepted. An empty string leaves target_token unchanged. Any
+    other input raises ValueError.
+    """
+    if not isinstance(context_budget, str):
+        raise ValueError(
+            f"context_budget must be a string like '+100' or '*1.5', got {type(context_budget).__name__}."
+        )
+    if context_budget.strip() == "":
+        return target_token
+    match = _CONTEXT_BUDGET_PATTERN.match(context_budget)
+    if match is None:
+        raise ValueError(
+            f"Invalid context_budget {context_budget!r}: expected an operator (+, -, *, /) followed by a number, e.g. '+100' or '*1.5'."
+        )
+    op, value = match.group(1), float(match.group(2))
+    if op == "+":
+        return target_token + value
+    if op == "-":
+        return target_token - value
+    if op == "*":
+        return target_token * value
+    if value == 0:
+        raise ValueError("Invalid context_budget: division by zero.")
+    return target_token / value
+
 
 class PromptCompressor:
     """
@@ -1198,7 +1231,7 @@ class PromptCompressor:
 
         if target_token < 0:
             target_token = 100
-        target_token = eval("target_token" + context_budget)
+        target_token = apply_context_budget(target_token, context_budget)
         res = []
         used = force_context_ids if force_context_ids is not None else []
         if context_segs is not None and strict_preserve_uncompressed:
