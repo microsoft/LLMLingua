@@ -1447,6 +1447,8 @@ class PromptCompressor:
         self_input_ids=None,
         self_attention_mask=None,
     ):
+        if end < iterative_size:
+            end = iterative_size
         if self_loss is not None:
             need_idx = torch.concat(
                 [
